@@ -15,6 +15,9 @@
     };
 
     path = [ pkgs.openssh ];
+    environment = {
+      GIT_SSH_COMMAND = "ssh -i /run/agenix/ssh-key-github -o StrictHostKeyChecking=no";
+    };
     serviceConfig = {
       Type = "oneshot";
       User = "amadeus";

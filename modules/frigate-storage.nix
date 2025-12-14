@@ -152,6 +152,7 @@ in
   environment.systemPackages = with pkgs; [
     mergerfs
     rsync
+    frigate-sync
   ];
 
   # Créer les dossiers
@@ -194,9 +195,6 @@ in
       "xattr=passthrough"
     ];
   };
-
-  # Script frigate-sync dans le PATH
-  environment.systemPackages = [ frigate-sync ];
 
   # Cron job - sync à 1h du matin
   services.cron = {

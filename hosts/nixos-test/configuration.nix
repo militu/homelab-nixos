@@ -12,6 +12,7 @@
     ../../modules/frigate-storage.nix
     ../../modules/k3s-repo.nix
     ../../modules/cifs-mac.nix
+    ../../modules/gpu-amd.nix
   ];
 
   # Hostname

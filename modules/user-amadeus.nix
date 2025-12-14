@@ -2,10 +2,9 @@
 { config, lib, pkgs, ... }:
 
 {
-  # Secret SSH GitHub (déchiffré par agenix)
+  # Secret SSH GitHub (déchiffré par agenix dans /run/agenix/)
   age.secrets.ssh-key-github = {
     file = ../secrets/ssh-key-github.age;
-    path = "/home/amadeus/.ssh/id_ed25519_github";
     owner = "amadeus";
     group = "users";
     mode = "600";
@@ -128,7 +127,7 @@
       matchBlocks."github.com" = {
         hostname = "github.com";
         user = "git";
-        identityFile = "/home/amadeus/.ssh/id_ed25519_github";
+        identityFile = "/run/agenix/ssh-key-github";
       };
     };
   };

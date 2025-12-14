@@ -9,6 +9,8 @@
     ../../modules/user-amadeus.nix
     ../../modules/k3s.nix
     ../../modules/nfs-truenas.nix
+    ../../modules/frigate-storage.nix
+    ../../modules/k3s-repo.nix
   ];
 
   # Hostname

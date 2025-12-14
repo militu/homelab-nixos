@@ -23,7 +23,7 @@
       User = "amadeus";
       Group = "users";
       WorkingDirectory = "/home/amadeus";
-      ExecStart = "${pkgs.git}/bin/git clone git@github.com:militu/k3s.git /home/amadeus/k3s";
+      ExecStart = "${pkgs.git}/bin/git clone git@github.com:militu/k3s-homelab.git /home/amadeus/k3s";
       RemainAfterExit = true;
     };
   };

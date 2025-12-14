@@ -5,14 +5,8 @@
   # Activer le driver AMD
   boot.initrd.kernelModules = [ "amdgpu" ];
 
-  # Graphics support
-  hardware.graphics = {
-    enable = true;
-    extraPackages = with pkgs; [
-      amdvlk
-      rocmPackages.clr.icd
-    ];
-  };
+  # Graphics support (RADV est activé par défaut)
+  hardware.graphics.enable = true;
 
   # ROCm pour ML/compute
   systemd.tmpfiles.rules = [

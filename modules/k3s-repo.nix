@@ -14,6 +14,7 @@
       ConditionPathExists = "!/home/amadeus/k3s";
     };
 
+    path = [ pkgs.openssh ];
     serviceConfig = {
       Type = "oneshot";
       User = "amadeus";

@@ -12,99 +12,183 @@ homelab-nixos/
 │   └── titan/                   # VM de production (172.16.16.210)
 ├── modules/
 │   ├── common.nix               # Boot, SSH, timezone, packages de base
-│   ├── user-amadeus.nix         # Utilisateur + home-manager + fish
+│   ├── user-amadeus.nix         # Utilisateur + home-manager + agenix secrets
 │   ├── k3s.nix                  # Kubernetes K3s
-│   └── nfs-truenas.nix          # Montages NFS vers TrueNAS
+│   ├── k3s-repo.nix             # Clone auto du repo k3s-homelab
+│   ├── nfs-truenas.nix          # Montages NFS vers TrueNAS
+│   ├── frigate-storage.nix      # mergerfs SSD+NAS + frigate-sync + cron
+│   └── cifs-mac.nix             # Montages CIFS Mac via Tailscale
 └── secrets/
     ├── secrets.nix              # Définition des secrets (agenix)
-    └── ssh-key-github.age       # Clé SSH GitHub (chiffrée)
+    ├── ssh-key-github.age       # Clé SSH GitHub (chiffrée)
+    └── cifs-mac.age             # Credentials CIFS Mac (chiffrés)
 ```
 
-## Déploiement "1 clic"
+## Déploiement from scratch
 
-### Prérequis
-
-1. Nix installé sur ton Mac
-2. La clé master (`~/.secrets/homelab/host_key`) - voir section "Clé Master"
-3. Une VM Proxmox bootée sur l'ISO NixOS live
-
-### Déployer une VM
+### 1. Créer la VM sur Proxmox
 
 ```bash
-# Préparer les fichiers à injecter (clé host)
-mkdir -p /tmp/nixos-extra/etc/ssh
-cp ~/.secrets/homelab/host_key /tmp/nixos-extra/etc/ssh/ssh_host_ed25519_key
-chmod 600 /tmp/nixos-extra/etc/ssh/ssh_host_ed25519_key
+# Production (titan) - 16GB RAM, 4 cores, 64GB disk
+qm create 100 \
+  --name titan \
+  --memory 16384 \
+  --cores 4 \
+  --cpu host \
+  --bios ovmf \
+  --machine q35 \
+  --efidisk0 local-lvm:1,efitype=4m \
+  --scsi0 local-lvm:64,ssd=1,discard=on \
+  --scsi1 local:iso/nixos-25.11-minimal.iso,media=cdrom \
+  --scsihw virtio-scsi-single \
+  --net0 virtio,bridge=vmbr0,tag=10 \
+  --boot order=scsi1 \
+  --agent 1
 
-# Déployer
-nix run github:nix-community/nixos-anywhere -- \
-  --flake .#nixos-test \
-  --extra-files /tmp/nixos-extra \
-  root@<IP_VM_LIVE>
+# Test (nixos-test) - 4GB RAM, 2 cores, 32GB disk
+qm create 110 \
+  --name nixos-test \
+  --memory 4096 \
+  --cores 2 \
+  --cpu host \
+  --bios ovmf \
+  --machine q35 \
+  --efidisk0 local-lvm:1,efitype=4m \
+  --scsi0 local-lvm:32,ssd=1,discard=on \
+  --scsi1 local:iso/nixos-25.11-minimal.iso,media=cdrom \
+  --scsihw virtio-scsi-single \
+  --net0 virtio,bridge=vmbr0,tag=10 \
+  --boot order=scsi1 \
+  --agent 1
 ```
 
-La VM aura automatiquement :
-- Ta clé SSH GitHub (déchiffrée)
-- Fish + Tide configuré
-- K3s prêt
-- Montages NFS
+### 2. Démarrer la VM et configurer SSH
+
+```bash
+# Démarrer la VM
+qm start 110
+
+# Dans la console Proxmox de la VM:
+sudo -i
+passwd     # Définir un mot de passe temporaire pour root
+ip a       # Noter l'IP (DHCP)
+```
+
+### 3. Préparer la clé master sur ton Mac
+
+```bash
+# Récupérer la clé master depuis Bitwarden → "NixOS Homelab Master Key"
+mkdir -p ~/.secrets/homelab
+# Coller le contenu de la clé privée dans ~/.secrets/homelab/host_key
+chmod 600 ~/.secrets/homelab/host_key
+
+# Préparer les extra-files pour nixos-anywhere
+mkdir -p /tmp/extra-files/etc/ssh
+cp ~/.secrets/homelab/host_key /tmp/extra-files/etc/ssh/ssh_host_ed25519_key
+chmod 600 /tmp/extra-files/etc/ssh/ssh_host_ed25519_key
+```
+
+### 4. Déployer avec nixos-anywhere
+
+```bash
+nix run github:nix-community/nixos-anywhere -- \
+  --flake github:militu/homelab-nixos#nixos-test \
+  --extra-files /tmp/extra-files \
+  root@<IP_VM>
+```
+
+### 5. Configurer le boot et retirer l'ISO
+
+```bash
+# Après le reboot automatique, retirer l'ISO
+qm stop 110
+qm set 110 --delete scsi1
+qm set 110 --boot order=scsi0
+qm start 110
+```
+
+### 6. Post-installation
+
+```bash
+# Se connecter
+ssh amadeus@172.16.16.220
+
+# Configurer Tide (prompt Fish joli)
+tide configure
+```
 
 ## Mise à jour d'une machine existante
 
 ```bash
 # Depuis la machine NixOS
 sudo nixos-rebuild switch --flake github:militu/homelab-nixos#nixos-test
+
+# Avec refresh du cache (si changements récents)
+sudo nixos-rebuild switch --flake github:militu/homelab-nixos#nixos-test --refresh
 ```
 
-## Clé Master
+## Secrets dans Bitwarden
 
-Une seule clé host SSH pour toutes les VMs. Elle permet de déchiffrer les secrets.
+Tous les secrets sont sauvegardés dans Bitwarden:
 
-### Emplacement
+| Item Bitwarden | Description | Usage |
+|----------------|-------------|-------|
+| NixOS Homelab Master Key | Clé SSH host master | Déchiffre tous les secrets agenix |
+| NixOS GitHub SSH Key | Clé SSH GitHub (sans passphrase) | Clone repos privés |
+| NixOS CIFS Mac Credentials | username/password Mac shares | Montages CIFS |
+
+### Format des credentials CIFS
 
 ```
-~/.secrets/homelab/
-├── host_key       # Clé privée (NE JAMAIS PARTAGER)
-└── host_key.pub   # Clé publique (dans secrets.nix)
+username=ton_user
+password=ton_password
 ```
 
-### Backup
+## Gestion des secrets (agenix)
 
-**La clé privée est sauvegardée dans Bitwarden.**
-
-Sans cette clé, impossible de :
-- Déchiffrer les secrets existants
-- Déployer une nouvelle VM avec les secrets
-
-### Régénérer (si perdue)
-
-Si tu perds la clé master, il faut :
-1. Générer une nouvelle clé : `ssh-keygen -t ed25519 -f ~/.secrets/homelab/host_key -N ""`
-2. Mettre à jour `secrets/secrets.nix` avec la nouvelle clé publique
-3. Re-chiffrer tous les secrets : `cd secrets && agenix -r`
-4. Sauvegarder la nouvelle clé dans Bitwarden
-
-## Secrets (agenix)
-
-Les secrets sont chiffrés avec la clé master. Seules les VMs qui ont cette clé peuvent les déchiffrer.
-
-### Ajouter un secret
+### Déchiffrer un secret (vérification)
 
 ```bash
-# 1. Déclarer le secret dans secrets/secrets.nix
-"mon-secret.age".publicKeys = systems;
-
-# 2. Chiffrer le secret
-cd secrets
-agenix -e mon-secret.age
-# → Éditeur s'ouvre, coller le contenu, sauver
-
-# 3. Configurer où le secret apparaît (dans un module .nix)
-age.secrets.mon-secret.file = ../secrets/mon-secret.age;
+cd ~/code/homelab-nixos/secrets
+nix run github:ryantm/agenix -- -d ssh-key-github.age -i ~/.secrets/homelab/host_key
 ```
 
-### Secrets actuels
+### Modifier/Ajouter un secret
 
-| Fichier | Description | Déchiffré vers |
-|---------|-------------|----------------|
-| `ssh-key-github.age` | Clé SSH privée GitHub | `~/.ssh/id_ed25519_github` |
+```bash
+cd ~/code/homelab-nixos/secrets
+
+# Éditer un secret existant
+nix run github:ryantm/agenix -- -e ssh-key-github.age -i ~/.secrets/homelab/host_key
+
+# Ou créer depuis un fichier
+echo "contenu" | nix run github:ryantm/agenix -- -e nouveau-secret.age -i ~/.secrets/homelab/host_key
+```
+
+### Re-chiffrer tous les secrets (si clé master change)
+
+```bash
+cd ~/code/homelab-nixos/secrets
+nix run github:ryantm/agenix -- -r -i ~/.secrets/homelab/host_key
+```
+
+## Ce qui est automatisé au déploiement
+
+- Secrets déchiffrés (SSH GitHub, CIFS)
+- Clone du repo k3s-homelab dans `/home/amadeus/k3s`
+- K3s installé et démarré
+- Mounts NFS TrueNAS (automount)
+- Mounts CIFS Mac (automount via Tailscale)
+- mergerfs `/mnt/frigate_union` (SSD + NAS)
+- Cron frigate-sync à 1h du matin
+- Fish + plugins (Tide, fzf, autopair)
+
+## Checklist migration finale
+
+- [ ] Arrêter les services sur l'ancienne VM
+- [ ] Créer la VM titan avec les specs prod
+- [ ] Déployer avec nixos-anywhere
+- [ ] Vérifier tous les services
+- [ ] Changer l'IP de titan vers 172.16.16.210
+- [ ] Mettre à jour DNS/reverse proxy si nécessaire
+- [ ] Supprimer l'ancienne VM

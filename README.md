@@ -17,7 +17,8 @@ homelab-nixos/
 │   ├── k3s-repo.nix             # Clone auto du repo k3s-homelab
 │   ├── nfs-truenas.nix          # Montages NFS vers TrueNAS
 │   ├── frigate-storage.nix      # mergerfs SSD+NAS + frigate-sync + cron
-│   └── cifs-mac.nix             # Montages CIFS Mac via Tailscale
+│   ├── cifs-mac.nix             # Montages CIFS Mac via Tailscale
+│   └── gpu-amd.nix              # GPU AMD passthrough (ROCm, amdgpu)
 └── secrets/
     ├── secrets.nix              # Définition des secrets (agenix)
     ├── ssh-key-github.age       # Clé SSH GitHub (chiffrée)
@@ -104,6 +105,10 @@ nix run github:nix-community/nixos-anywhere -- \
 qm stop 110
 qm set 110 --delete scsi1
 qm set 110 --boot order=scsi0
+
+# (Optionnel) Ajouter GPU AMD passthrough
+qm set 110 -hostpci0 0000:04:00.0,romfile=vbios_1002.bin,x-vga=1
+
 qm start 110
 ```
 
@@ -182,6 +187,7 @@ nix run github:ryantm/agenix -- -r -i ~/.secrets/homelab/host_key
 - mergerfs `/mnt/frigate_union` (SSD + NAS)
 - Cron frigate-sync à 1h du matin
 - Fish + plugins (Tide, fzf, autopair)
+- GPU AMD (amdgpu + ROCm) si module activé
 
 ## Checklist migration finale
 

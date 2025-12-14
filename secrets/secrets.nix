@@ -12,6 +12,9 @@ in
   # Clé SSH privée pour GitHub
   "ssh-key-github.age".publicKeys = systems;
 
+  # Credentials CIFS pour les shares Mac
+  "cifs-mac.age".publicKeys = systems;
+
   # Mot de passe utilisateur (optionnel, on utilise hashedPassword pour l'instant)
   # "amadeus-password.age".publicKeys = systems;
 }

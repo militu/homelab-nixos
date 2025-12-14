@@ -11,6 +11,7 @@
     ../../modules/nfs-truenas.nix
     ../../modules/frigate-storage.nix
     ../../modules/k3s-repo.nix
+    ../../modules/cifs-mac.nix
   ];
 
   # Hostname

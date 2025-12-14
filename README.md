@@ -30,19 +30,16 @@ homelab-nixos/
 ### 1. Créer la VM sur Proxmox
 
 ```bash
-# Production (titan) - 16GB RAM, 4 cores, 64GB disk
-qm create 100 \
-  --name titan \
-  --memory 16384 \
-  --cores 4 \
-  --cpu host \
-  --bios ovmf \
-  --machine q35 \
+# Production (titan) - 32GB RAM, 8 cores, 200GB disk
+qm create 101 --name titan-nixos --memory 32768 --cores 8 --cpu host \
+  --bios ovmf --machine q35 \
   --efidisk0 local-lvm:1,efitype=4m \
-  --scsi0 local-lvm:64,ssd=1,discard=on \
+  --scsi0 local-lvm:200,ssd=1,discard=on,cache=writeback,iothread=1 \
   --scsi1 local:iso/nixos-25.11-minimal.iso,media=cdrom \
   --scsihw virtio-scsi-single \
-  --net0 virtio,bridge=vmbr0,tag=10 \
+  --net0 virtio,bridge=vmbr0,tag=10,firewall=1 \
+  --balloon 0 \
+  --onboot 1 \
   --boot order=scsi1 \
   --agent 1
 
@@ -189,12 +186,36 @@ nix run github:ryantm/agenix -- -r -i ~/.secrets/homelab/host_key
 - Fish + plugins (Tide, fzf, autopair)
 - GPU AMD (amdgpu + ROCm) si module activé
 
+## Démarrer la stack K3s
+
+Une fois connecté sur titan NixOS, le repo k3s est cloné automatiquement :
+
+```bash
+cd ~/k3s
+
+# Vérifier que K3s tourne
+kubectl get nodes
+
+# Appliquer toute la stack
+kubectl apply -k base/
+
+# Ou app par app
+kubectl apply -k base/apps/argocd
+kubectl apply -k base/apps/traefik
+# etc...
+
+# Voir les pods
+kubectl get pods -A
+```
+
 ## Checklist migration finale
 
-- [ ] Arrêter les services sur l'ancienne VM
-- [ ] Créer la VM titan avec les specs prod
-- [ ] Déployer avec nixos-anywhere
-- [ ] Vérifier tous les services
-- [ ] Changer l'IP de titan vers 172.16.16.210
-- [ ] Mettre à jour DNS/reverse proxy si nécessaire
-- [ ] Supprimer l'ancienne VM
+- [ ] Arrêter l'ancien titan (VM 100) : `qm stop 100`
+- [ ] Créer la VM titan-nixos (101) avec la commande ci-dessus
+- [ ] Démarrer et noter l'IP DHCP : `qm start 101`
+- [ ] Configurer SSH : `sudo -i && passwd && ip a`
+- [ ] Déployer : `nix run github:nix-community/nixos-anywhere -- --flake github:militu/homelab-nixos#titan --extra-files /tmp/extra-files root@<IP_DHCP>`
+- [ ] Finaliser boot : `qm stop 101 && qm set 101 --delete scsi1 --boot order=scsi0 && qm set 101 -hostpci0 0000:04:00.0,romfile=vbios_1002.bin,x-vga=1 && qm start 101`
+- [ ] Vérifier : `ssh amadeus@172.16.16.210` puis `kubectl get nodes`
+- [ ] Démarrer K3s stack : `cd ~/k3s && kubectl apply -k base/`
+- [ ] Supprimer l'ancien titan : `qm destroy 100`

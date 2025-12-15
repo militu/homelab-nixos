@@ -2,6 +2,8 @@
 
 Configuration NixOS 100% reproductible pour homelab Proxmox.
 
+> **Documentation complète** : [mkdocs.lemasdelacolline.xyz](https://mkdocs.lemasdelacolline.xyz)
+
 ## Structure
 
 ```

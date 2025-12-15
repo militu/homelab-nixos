@@ -31,6 +31,9 @@
   # Fish shell (système)
   programs.fish.enable = true;
 
+  # nix-ld pour VS Code Remote et autres binaires dynamiques
+  programs.nix-ld.enable = true;
+
   # SSH
   services.openssh = {
     enable = true;

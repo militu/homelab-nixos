@@ -144,8 +144,8 @@ Tous les secrets sont sauvegardés dans Bitwarden:
 ### Format des credentials CIFS
 
 ```
-username=ton_user
-password=ton_password
+username=<CIFS_USERNAME>
+password=<CIFS_PASSWORD>
 ```
 
 ## Gestion des secrets (agenix)

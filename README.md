@@ -31,7 +31,7 @@ homelab-nixos/
 
 ```bash
 # Production (titan) - 32GB RAM, 8 cores, 200GB disk
-qm create 101 --name titan-nixos --memory 32768 --cores 8 --cpu host \
+qm create 120 --name titan-nixos --memory 32768 --cores 8 --cpu host \
   --bios ovmf --machine q35 \
   --efidisk0 local-lvm:1,efitype=4m \
   --scsi0 local-lvm:200,ssd=1,discard=on,cache=writeback,iothread=1 \
@@ -90,7 +90,7 @@ chmod 600 /tmp/extra-files/etc/ssh/ssh_host_ed25519_key
 
 ```bash
 nix run github:nix-community/nixos-anywhere -- \
-  --flake github:militu/homelab-nixos#nixos-test \
+  --flake github:militu/homelab-nixos#titan \
   --extra-files /tmp/extra-files \
   root@<IP_VM>
 ```
@@ -99,14 +99,14 @@ nix run github:nix-community/nixos-anywhere -- \
 
 ```bash
 # Après le reboot automatique, retirer l'ISO
-qm stop 110
-qm set 110 --delete scsi1
-qm set 110 --boot order=scsi0
+qm stop 120
+qm set 120 --delete scsi1
+qm set 120 --boot order=scsi0
 
 # (Optionnel) Ajouter GPU AMD passthrough
-qm set 110 -hostpci0 0000:04:00.0,romfile=vbios_1002.bin,x-vga=1
+qm set 120 -hostpci0 0000:04:00.0,romfile=vbios_1002.bin,x-vga=1
 
-qm start 110
+qm start 120
 ```
 
 ### 6. Post-installation
@@ -133,11 +133,11 @@ sudo nixos-rebuild switch --flake github:militu/homelab-nixos#nixos-test --refre
 
 Tous les secrets sont sauvegardés dans Bitwarden:
 
-| Item Bitwarden | Description | Usage |
-|----------------|-------------|-------|
-| NixOS Homelab Master Key | Clé SSH host master | Déchiffre tous les secrets agenix |
-| NixOS GitHub SSH Key | Clé SSH GitHub (sans passphrase) | Clone repos privés |
-| NixOS CIFS Mac Credentials | username/password Mac shares | Montages CIFS |
+| Item Bitwarden             | Description                      | Usage                             |
+| -------------------------- | -------------------------------- | --------------------------------- |
+| NixOS Homelab Master Key   | Clé SSH host master              | Déchiffre tous les secrets agenix |
+| NixOS GitHub SSH Key       | Clé SSH GitHub (sans passphrase) | Clone repos privés                |
+| NixOS CIFS Mac Credentials | username/password Mac shares     | Montages CIFS                     |
 
 ### Format des credentials CIFS
 
@@ -193,29 +193,46 @@ Une fois connecté sur titan NixOS, le repo k3s est cloné automatiquement :
 ```bash
 cd ~/k3s
 
+# Configurer kubectl
+mkdir -p ~/.kube
+sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+sudo chown $(id -u):$(id -g) ~/.kube/config
+
 # Vérifier que K3s tourne
 kubectl get nodes
 
-# Appliquer toute la stack
-kubectl apply -k base/
-
-# Ou app par app
-kubectl apply -k base/apps/argocd
-kubectl apply -k base/apps/traefik
-# etc...
+# Déployer ArgoCD (gère ensuite les autres apps via GitOps)
+kubectl apply -f apps/argocd/
 
 # Voir les pods
 kubectl get pods -A
 ```
 
+### Troubleshooting K3s
+
+Si K3s ne démarre pas après un premier déploiement (token corrompu) :
+
+```bash
+# Vérifier le status
+sudo systemctl status k3s
+sudo journalctl -u k3s --no-pager -n 30
+
+# Si erreur "failed to normalize server token", reset K3s :
+sudo systemctl stop k3s
+sudo rm -rf /var/lib/rancher/k3s/server
+sudo systemctl start k3s
+sleep 15
+sudo systemctl status k3s
+```
+
 ## Checklist migration finale
 
 - [ ] Arrêter l'ancien titan (VM 100) : `qm stop 100`
-- [ ] Créer la VM titan-nixos (101) avec la commande ci-dessus
-- [ ] Démarrer et noter l'IP DHCP : `qm start 101`
+- [ ] Créer la VM titan-nixos (120) avec la commande ci-dessus
+- [ ] Démarrer et noter l'IP DHCP : `qm start 120`
 - [ ] Configurer SSH : `sudo -i && passwd && ip a`
 - [ ] Déployer : `nix run github:nix-community/nixos-anywhere -- --flake github:militu/homelab-nixos#titan --extra-files /tmp/extra-files root@<IP_DHCP>`
-- [ ] Finaliser boot : `qm stop 101 && qm set 101 --delete scsi1 --boot order=scsi0 && qm set 101 -hostpci0 0000:04:00.0,romfile=vbios_1002.bin,x-vga=1 && qm start 101`
+- [ ] Finaliser boot : `qm stop 120 && qm set 120 --delete scsi1 --boot order=scsi0 && qm set 120 -hostpci0 0000:04:00.0,romfile=vbios_1002.bin,x-vga=1 && qm start 120`
 - [ ] Vérifier : `ssh amadeus@172.16.16.210` puis `kubectl get nodes`
-- [ ] Démarrer K3s stack : `cd ~/k3s && kubectl apply -k base/`
+- [ ] Démarrer K3s stack : `cd ~/k3s && kubectl apply -f apps/argocd/`
 - [ ] Supprimer l'ancien titan : `qm destroy 100`

@@ -16,8 +16,18 @@ let
     import logging
     import subprocess
     import fcntl
+    import urllib.request
     from pathlib import Path
     import tempfile
+
+    # Healthchecks.io ping URL
+    HC_URL = "https://healthchecks.lemasdelacolline.xyz/ping/72fe5c9e-36f1-4888-ab07-f8e4ebbb284a"
+
+    def ping_healthcheck(endpoint=""):
+        try:
+            urllib.request.urlopen(f"{HC_URL}{endpoint}", timeout=10)
+        except Exception as e:
+            logging.warning(f"Failed to ping Healthchecks: {e}")
 
     # Configuration
     CONFIG = {
@@ -116,6 +126,9 @@ let
             logging.error("Another sync process is running. Aborting.")
             return 1
 
+        # Signal start to Healthchecks
+        ping_healthcheck("/start")
+
         exit_code = 0
         try:
             logging.info("--- Starting Frigate Sync Process ---")
@@ -140,6 +153,12 @@ let
         finally:
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
             lock_file.close()
+
+        # Signal success or failure to Healthchecks
+        if exit_code == 0:
+            ping_healthcheck()
+        else:
+            ping_healthcheck("/fail")
 
         return exit_code
 

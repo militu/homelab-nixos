@@ -351,10 +351,18 @@
     # SSH config pour GitHub
     programs.ssh = {
       enable = true;
-      matchBlocks."github.com" = {
-        hostname = "github.com";
-        user = "git";
-        identityFile = "/run/agenix/ssh-key-github";
+      addKeysToAgent = "yes";
+      matchBlocks = {
+        "*" = {
+          extraOptions = {
+            AddKeysToAgent = "yes";
+          };
+        };
+        "github.com" = {
+          hostname = "github.com";
+          user = "git";
+          identityFile = "/run/agenix/ssh-key-github";
+        };
       };
     };
   };

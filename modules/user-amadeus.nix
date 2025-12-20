@@ -351,12 +351,11 @@
     # SSH config pour GitHub
     programs.ssh = {
       enable = true;
-      addKeysToAgent = "yes";
+      # Désactiver les valeurs par défaut dépréciées
+      enableDefaultConfig = false;
       matchBlocks = {
         "*" = {
-          extraOptions = {
-            AddKeysToAgent = "yes";
-          };
+          addKeysToAgent = "yes";
         };
         "github.com" = {
           hostname = "github.com";

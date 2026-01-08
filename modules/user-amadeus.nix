@@ -178,6 +178,100 @@
           kubectl rollout status deployment/$argv[2] -n $argv[1]
         end
 
+        # Restart interactif avec fzf
+        function kroll
+          set -l base_path /home/amadeus/k3s/base/apps
+
+          # Liste des apps disponibles
+          set -l apps (command ls -1 $base_path 2>/dev/null | sort)
+          if test -z "$apps"
+            echo "❌ Aucune app trouvée dans $base_path"
+            return 1
+          end
+
+          # Sélection de l'app avec fzf
+          set -l selected_app (printf '%s\n' $apps | fzf --header="Sélectionner une app à redémarrer" --height=40% --reverse)
+          if test -z "$selected_app"
+            echo "Annulé"
+            return 0
+          end
+
+          # Trouver tous les deployments dans les fichiers yaml de l'app
+          set -l app_path $base_path/$selected_app
+          set -l deployments
+
+          for yaml_file in $app_path/*.yaml
+            if test -f "$yaml_file"
+              # Extraire les noms de deployments (ligne après "kind: Deployment")
+              set -l deps (awk '/^kind: Deployment/{getline; getline; if(/name:/) print}' $yaml_file | awk -F': ' '{print $2}' | tr -d ' ')
+              for dep in $deps
+                if test -n "$dep"
+                  set -a deployments $dep
+                end
+              end
+            end
+          end
+
+          if test -z "$deployments"
+            echo "❌ Aucun deployment trouvé dans $app_path"
+            return 1
+          end
+
+          # Détecter le namespace depuis les fichiers yaml (première occurrence de "namespace:")
+          set -l namespace (awk '/^  namespace:/{print $2; exit}' $app_path/*.yaml 2>/dev/null | tr -d ' ')
+          if test -z "$namespace"
+            set namespace $selected_app
+          end
+
+          # Si un seul deployment, le restart directement
+          if test (count $deployments) -eq 1
+            echo "🔄 Redémarrage de $deployments[1] dans $namespace..."
+            kubectl rollout restart deployment/$deployments[1] -n $namespace
+            kubectl rollout status deployment/$deployments[1] -n $namespace
+            return 0
+          end
+
+          # Plusieurs deployments: proposer choix avec [ALL] en premier
+          echo "📦 App: $selected_app (namespace: $namespace)"
+          echo "   Deployments trouvés: "(count $deployments)
+
+          set -l choices "[ALL]"
+          for dep in $deployments
+            set -a choices $dep
+          end
+
+          set -l selected (printf '%s\n' $choices | fzf --multi --header="Sélectionner le(s) deployment(s) (Tab=multi)" --height=40% --reverse)
+          if test -z "$selected"
+            echo "Annulé"
+            return 0
+          end
+
+          # Vérifier si [ALL] est sélectionné
+          if contains '[ALL]' $selected
+            echo "🔄 Redémarrage de tous les deployments dans $namespace..."
+            for dep in $deployments
+              echo "   → $dep"
+              kubectl rollout restart deployment/$dep -n $namespace
+            end
+            echo ""
+            echo "⏳ Attente du rollout..."
+            for dep in $deployments
+              kubectl rollout status deployment/$dep -n $namespace --timeout=120s
+            end
+          else
+            # Redémarrer les deployments sélectionnés
+            for dep in (string split \n $selected)
+              if test -n "$dep"
+                echo "🔄 Redémarrage de $dep dans $namespace..."
+                kubectl rollout restart deployment/$dep -n $namespace
+                kubectl rollout status deployment/$dep -n $namespace --timeout=120s
+              end
+            end
+          end
+
+          echo "✓ Terminé"
+        end
+
         # --- COMMANDES DANGEREUSES (avec confirmation) ---
 
         # Supprimer un pod (force recreate)
@@ -287,6 +381,7 @@
 
 🔄 GESTION
   kuse <ns>           Changer de namespace
+  kroll               Restart interactif avec fzf (multi-deploy)
   krestart <ns> <dep> Restart un deployment
   kstart <ns> <dep>   Démarrer (scale 1)
   kstop <ns> <dep>    Arrêter (scale 0)

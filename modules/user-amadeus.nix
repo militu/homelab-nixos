@@ -32,7 +32,7 @@
     # Packages utilisateur
     home.packages = with pkgs; [
       eza bat fd ripgrep fzf zoxide btop dust duf lazygit jq yq
-      kubectl k9s kubernetes-helm kubeseal
+      kubectl k9s kubernetes-helm kubeseal gh
     ];
 
     # Fish shell

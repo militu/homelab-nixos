@@ -69,6 +69,9 @@
         set -gx KUBECONFIG /etc/rancher/k3s/k3s.yaml
         set -gx EDITOR vim
 
+        # Binaires locaux (~/.local/bin)
+        fish_add_path --path $HOME/.local/bin
+
         # Tide configuration (joli prompt)
         set -g _tide_left_items os pwd git newline character
         set -g _tide_right_items status cmd_duration context jobs node python virtual_env

@@ -33,7 +33,8 @@
     home.packages = with pkgs; [
       eza bat fd ripgrep fzf zoxide btop dust duf lazygit jq yq
       kubectl k9s kubernetes-helm kubeseal gh
-      nodejs_24  # For MCP servers
+      nodejs_24
+      tmux
     ];
 
     # Fish shell

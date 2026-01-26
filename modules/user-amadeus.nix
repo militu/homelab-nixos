@@ -35,6 +35,7 @@
       kubectl k9s kubernetes-helm kubeseal gh
       nodejs_24
       tmux
+      uv
     ];
 
     # Fish shell

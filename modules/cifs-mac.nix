@@ -21,7 +21,7 @@
 
   # Mounts CIFS
   fileSystems."/mnt/mac_hub" = {
-    device = "//100.67.138.79/Hub";
+    device = "//100.95.204.27/Hub";
     fsType = "cifs";
     options = [
       "credentials=/run/agenix/cifs-mac"
@@ -38,7 +38,7 @@
   };
 
   fileSystems."/mnt/mac_downloads" = {
-    device = "//100.67.138.79/Téléchargements";
+    device = "//100.95.204.27/Téléchargements";
     fsType = "cifs";
     options = [
       "credentials=/run/agenix/cifs-mac"

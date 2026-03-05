@@ -18,9 +18,14 @@
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    gws = {
+      url = "github:googleworkspace/cli";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, disko, agenix, ... }: {
+  outputs = { self, nixpkgs, home-manager, disko, agenix, gws, ... }: {
     nixosConfigurations = {
       # VM de test
       nixos-test = nixpkgs.lib.nixosSystem {
@@ -32,6 +37,7 @@
           ./hosts/nixos-test/configuration.nix
           {
             environment.systemPackages = [ agenix.packages.x86_64-linux.default ];
+            home-manager.extraSpecialArgs = { gwsPkg = gws.packages.x86_64-linux.default; };
           }
         ];
       };
@@ -46,6 +52,7 @@
           ./hosts/titan/configuration.nix
           {
             environment.systemPackages = [ agenix.packages.x86_64-linux.default ];
+            home-manager.extraSpecialArgs = { gwsPkg = gws.packages.x86_64-linux.default; };
           }
         ];
       };

@@ -26,7 +26,7 @@
   home-manager.backupFileExtension = "backup";
 
   # Home Manager pour amadeus
-  home-manager.users.amadeus = { pkgs, ... }: {
+  home-manager.users.amadeus = { pkgs, gwsPkg, ... }: {
     home.stateVersion = "25.11";
 
     # Packages utilisateur
@@ -36,6 +36,7 @@
       nodejs_24
       tmux
       uv
+      gwsPkg
     ];
 
     # Fish shell

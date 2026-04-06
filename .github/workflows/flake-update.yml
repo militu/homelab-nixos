@@ -1,0 +1,29 @@
+name: Flake Update
+
+on:
+  schedule:
+    - cron: "0 3 * * 0" # Every Sunday at 3:00 UTC
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Update flake.lock
+        run: nix flake update
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore(deps): update flake.lock"
+          title: "chore(deps): update flake.lock"
+          body: |
+            Automated `nix flake update`.
+
+            Merge when ready — Titan will pick it up at next nightly rebuild (~4h).
+          branch: chore/flake-update
+          delete-branch: true

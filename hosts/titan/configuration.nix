@@ -14,6 +14,7 @@
     ../../modules/cifs-mac.nix
     ../../modules/gpu-amd.nix
     ../../modules/claude-crons.nix
+    ../../modules/auto-upgrade.nix
   ];
 
   # Hostname

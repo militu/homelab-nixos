@@ -16,7 +16,6 @@
     path = [ pkgs.coreutils pkgs.bash pkgs.nodejs ];
     environment = {
       HOME = "/home/amadeus";
-      PATH = "/home/amadeus/.local/bin:/run/current-system/sw/bin:/usr/bin:/bin";
     };
     serviceConfig = {
       Type = "oneshot";

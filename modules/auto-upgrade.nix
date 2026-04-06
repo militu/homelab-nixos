@@ -7,7 +7,7 @@
   system.autoUpgrade = {
     enable = true;
     flake = "github:militu/homelab-nixos#titan";
-    dates = "Sun *-*-* 04:00:00";
+    dates = "*-*-* 04:00:00";
     randomizedDelaySec = "30min";
     allowReboot = false;
     operation = "switch";

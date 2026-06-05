@@ -15,6 +15,10 @@ in
   # Credentials CIFS pour les shares Mac
   "cifs-mac.age".publicKeys = systems;
 
+  # Clé AES-256 (base64) partagée avec l'extension navigateur "Qonto Cookie → Jarvis"
+  # pour déchiffrer le cookie qonto_session transmis chiffré par mail.
+  "jarvis-qonto-key.age".publicKeys = systems;
+
   # Mot de passe utilisateur (optionnel, on utilise hashedPassword pour l'instant)
   # "amadeus-password.age".publicKeys = systems;
 }

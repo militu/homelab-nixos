@@ -6,6 +6,14 @@
 { config, lib, pkgs, ... }:
 
 {
+  # Clé AES-256 partagée avec l'extension navigateur, pour déchiffrer le cookie Qonto.
+  age.secrets.jarvis-qonto-key = {
+    file = ../secrets/jarvis-qonto-key.age;
+    owner = "amadeus";
+    group = "users";
+    mode = "600";
+  };
+
   systemd.timers."claude-jarvis-mail" = {
     description = "Poll Gmail +jarvis alias, trigger Jarvis on new instruction mails";
     wantedBy = [ "timers.target" ];
@@ -47,6 +55,46 @@
 
         echo "[jarvis-mail] $COUNT mail(s) to process, invoking Jarvis..."
 
+        # --- COOKIE QONTO : cherche un blob chiffré [JARVIS_QONTO:...] dans les mails ---
+        # Si présent, déchiffre (clé AES via agenix) et écris le cookie frais pour le MCP.
+        COOKIE_FILE="/run/user/$(id -u)/qonto_cookie"
+        AES_KEY_FILE="/run/agenix/jarvis-qonto-key"
+        rm -f "$COOKIE_FILE"
+
+        # Récupère le texte brut de tous les mails matchés (décodé base64url) et concatène.
+        MAIL_IDS=$(gws gmail users messages list \
+          --params "{\"userId\":\"me\",\"q\":\"$QUERY\",\"maxResults\":10}" 2>/dev/null \
+          | grep -v "keyring backend" | jq -r '.messages[]?.id')
+
+        BLOB=""
+        for mid in $MAIL_IDS; do
+          BODY=$(gws gmail users messages get \
+            --params "{\"userId\":\"me\",\"id\":\"$mid\",\"format\":\"full\"}" 2>/dev/null \
+            | grep -v "keyring backend" \
+            | jq -r '[.. | .body?.data? // empty] | map(gsub("-";"+") | gsub("_";"/") | @base64d) | join("\n")' 2>/dev/null)
+          FOUND=$(printf '%s' "$BODY" | grep -oE '\[JARVIS_QONTO:[A-Za-z0-9+/=]+\]' | head -1)
+          if [ -n "$FOUND" ]; then BLOB="$FOUND"; break; fi
+        done
+
+        if [ -n "$BLOB" ] && [ -f "$AES_KEY_FILE" ]; then
+          if JARVIS_BLOB="$BLOB" JARVIS_KEYFILE="$AES_KEY_FILE" JARVIS_OUT="$COOKIE_FILE" node -e '
+            const crypto=require("crypto"),fs=require("fs");
+            const key=Buffer.from(fs.readFileSync(process.env.JARVIS_KEYFILE,"utf8").trim(),"base64");
+            const m=process.env.JARVIS_BLOB.match(/\[JARVIS_QONTO:([A-Za-z0-9+/=]+)\]/);
+            const buf=Buffer.from(m[1],"base64");
+            const iv=buf.subarray(0,12),tag=buf.subarray(buf.length-16),ct=buf.subarray(12,buf.length-16);
+            const d=crypto.createDecipheriv("aes-256-gcm",key,iv); d.setAuthTag(tag);
+            const cookie=Buffer.concat([d.update(ct),d.final()]).toString("utf8");
+            const exp=JSON.parse(Buffer.from(cookie.split(".")[1],"base64").toString()).exp;
+            if(exp*1000 < Date.now()){ console.error("cookie expiré"); process.exit(2); }
+            fs.writeFileSync(process.env.JARVIS_OUT,cookie,{mode:0o600});
+          ' 2>>"$LOG_FILE"; then
+            echo "[jarvis-mail] cookie Qonto frais déchiffré → $COOKIE_FILE"
+          else
+            echo "[jarvis-mail] ⚠️ blob Qonto présent mais déchiffrement/expiration KO (voir log)"
+          fi
+        fi
+
         # --- LOG : en-tête de run ---
         {
           echo ""
@@ -83,6 +131,10 @@
            Tu ne peux PAS supprimer, ni modifier en masse, ni finaliser/envoyer une facture
            (Qonto = brouillon uniquement, c'est garanti par l'outil). N'essaie pas ces actions.
            Si une instruction demande quelque chose hors de ce périmètre, ne le fais pas et signale-le.
+           Pour une facture Qonto : ignore le marqueur [JARVIS_QONTO:...] dans le mail (c'est le cookie
+           d'authentification, déjà géré automatiquement) — appelle simplement create_client_invoice.
+           Si l'outil renvoie "session expirée / aucun cookie", c'est que je n'ai pas joint de cookie
+           frais : notifie-moi via Pushover de relancer l'extension, ne réessaie pas en boucle.
         4. Notifie le résultat via mcp__pushover__send_notification (format html, tags <b><i><u><a href>) :
            - succès : "✅ <ce que tu as fait> (<détails pertinents : tag, type, client, montant…>)"
            - blocage/doute : "⚠️ <mail> : <pourquoi tu n'as pas pu / ce qui demande validation>"
@@ -94,6 +146,9 @@
 
         Reste concis. Une notif Pushover par mail traité.
         PROMPT
+
+        # --- CLEANUP : supprime le cookie frais (ne traîne pas entre deux runs) ---
+        rm -f "$COOKIE_FILE"
 
         # --- LOG : pied de run ---
         echo "[$(date +'%Y-%m-%d %H:%M:%S %z')] RUN END" >> "$LOG_FILE"

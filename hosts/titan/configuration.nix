@@ -8,6 +8,7 @@
     ../../modules/common.nix
     ../../modules/user-amadeus.nix
     ../../modules/k3s.nix
+    ../../modules/memory-protection.nix
     ../../modules/nfs-truenas.nix
     ../../modules/frigate-storage.nix
     ../../modules/k3s-repo.nix

@@ -24,12 +24,6 @@ in
     options = nfsOptions;
   };
 
-  fileSystems."/mnt/truenas/booklore-bookdrop" = {
-    device = "${truenasIP}:/mnt/mainpool/booklore-bookdrop";
-    fsType = "nfs";
-    options = nfsOptions;
-  };
-
   fileSystems."/mnt/truenas/booklore-library" = {
     device = "${truenasIP}:/mnt/mainpool/booklore-library";
     fsType = "nfs";

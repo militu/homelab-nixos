@@ -35,4 +35,13 @@ in
     fsType = "nfs";
     options = nfsOptions;
   };
+
+  # HUB : copie serveur du Hub (synchronisée depuis le Mac via Syncthing).
+  # Monté en /mnt/mac_hub pour compat (chemin historique, renommage prévu en V5/V6).
+  # Remplace l'ancien montage CIFS //100.95.204.27/Hub (cf. cifs-mac.nix).
+  fileSystems."/mnt/mac_hub" = {
+    device = "${truenasIP}:/mnt/mainpool/hub";
+    fsType = "nfs";
+    options = nfsOptions;
+  };
 }

@@ -2,6 +2,12 @@
 { config, lib, pkgs, ... }:
 
 {
+  # Token de push Gatus (heartbeat dead-man-switch). Déchiffré au boot vers /run/agenix.
+  age.secrets.gatus-push-token = {
+    file = ../secrets/gatus-push-token.age;
+    owner = "amadeus";
+  };
+
   systemd.timers."claude-weekly-tasks" = {
     description = "Daily Initiative tasks + Calendar reminder via Pushover";
     wantedBy = [ "timers.target" ];
@@ -13,7 +19,7 @@
 
   systemd.services."claude-weekly-tasks" = {
     description = "Send daily Initiative tasks + Calendar summary via Pushover";
-    path = [ pkgs.coreutils pkgs.bash pkgs.nodejs pkgs.jq ];
+    path = [ pkgs.coreutils pkgs.bash pkgs.nodejs pkgs.jq pkgs.curl ];
     environment = {
       HOME = "/home/amadeus";
     };
@@ -22,6 +28,12 @@
       User = "amadeus";
       ExecStart = toString (pkgs.writeShellScript "claude-weekly-tasks" ''
         export PATH="/home/amadeus/.nix-profile/bin:$PATH"
+        # Heartbeat Gatus (dead-man-switch). Endpoint: titan_claude-weekly-tasks
+        GATUS="https://gatus.lemasdelacolline.xyz/api/v1/endpoints/titan_claude-weekly-tasks/external"
+        TOKEN="$(cat ${config.age.secrets.gatus-push-token.path})"
+        ping() { curl -sf -m 10 -X POST -H "Authorization: Bearer $TOKEN" "$GATUS?success=$1" >/dev/null 2>&1 || true; }
+        trap 'ping false' ERR
+        set -e
         cat <<'PROMPT' | /home/amadeus/.local/bin/claude -p \
           --allowedTools "mcp__initiative__list_tasks,mcp__initiative__list_projects,mcp__pushover__send_notification,Bash"
         Tu es mon assistant personnel. Aujourd'hui nous sommes le $(date +%Y-%m-%d). La semaine en cours va du lundi au dimanche.
@@ -43,6 +55,7 @@
 
         Si rien : "Aucune tache ni event actif 🎉"
         PROMPT
+        ping true
       '');
       TimeoutStartSec = "5min";
     };

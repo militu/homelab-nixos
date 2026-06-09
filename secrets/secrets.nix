@@ -19,6 +19,9 @@ in
   # pour déchiffrer le cookie qonto_session transmis chiffré par mail.
   "jarvis-qonto-key.age".publicKeys = systems;
 
+  # Token bearer pour pousser les heartbeats des jobs Titan vers Gatus.
+  "gatus-push-token.age".publicKeys = systems;
+
   # Mot de passe utilisateur (optionnel, on utilise hashedPassword pour l'instant)
   # "amadeus-password.age".publicKeys = systems;
 }

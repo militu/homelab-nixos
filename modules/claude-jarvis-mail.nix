@@ -26,7 +26,7 @@
 
   systemd.services."claude-jarvis-mail" = {
     description = "Process forwarded instruction mails via Jarvis skill";
-    path = [ pkgs.coreutils pkgs.bash pkgs.nodejs pkgs.jq ];
+    path = [ pkgs.coreutils pkgs.bash pkgs.nodejs pkgs.jq pkgs.curl ];
     environment = {
       HOME = "/home/amadeus";
     };
@@ -35,6 +35,13 @@
       User = "amadeus";
       ExecStart = toString (pkgs.writeShellScript "claude-jarvis-mail" ''
         export PATH="/home/amadeus/.nix-profile/bin:$PATH"
+
+        # Heartbeat Gatus (dead-man-switch) : prouve que le timer tourne (toutes les 5 min),
+        # qu'il y ait un mail à traiter ou non. Endpoint: titan_claude-jarvis-mail
+        GATUS="https://gatus.lemasdelacolline.xyz/api/v1/endpoints/titan_claude-jarvis-mail/external"
+        GATUS_TOKEN="$(cat ${config.age.secrets.gatus-push-token.path})"
+        gatus_ping() { curl -sf -m 10 -X POST -H "Authorization: Bearer $GATUS_TOKEN" "$GATUS?success=$1" >/dev/null 2>&1 || true; }
+        trap 'gatus_ping false' ERR
 
         QUERY="to:mazzeo.victor+jarvis@gmail.com is:unread"
 
@@ -50,6 +57,7 @@
 
         if [ "''${COUNT:-0}" -eq 0 ]; then
           echo "[jarvis-mail] no pending mail, skip."
+          gatus_ping true
           exit 0
         fi
 
@@ -152,6 +160,7 @@
 
         # --- LOG : pied de run ---
         echo "[$(date +'%Y-%m-%d %H:%M:%S %z')] RUN END" >> "$LOG_FILE"
+        gatus_ping true
       '');
       TimeoutStartSec = "10min";
     };

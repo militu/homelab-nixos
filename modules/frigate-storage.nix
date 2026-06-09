@@ -20,14 +20,26 @@ let
     from pathlib import Path
     import tempfile
 
-    # Healthchecks.io ping URL
-    HC_URL = "https://healthchecks.lemasdelacolline.xyz/ping/72fe5c9e-36f1-4888-ab07-f8e4ebbb284a"
+    # Heartbeat Gatus (dead-man-switch). Endpoint: titan_frigate-sync.
+    GATUS_URL = "https://gatus.lemasdelacolline.xyz/api/v1/endpoints/titan_frigate-sync/external"
+    GATUS_TOKEN_FILE = "/run/agenix/gatus-push-token"
 
     def ping_healthcheck(endpoint=""):
+        # Compat des appels existants : "/start" → no-op (Gatus n'a pas de signal
+        # start) ; "" → success=true ; "/fail" → success=false.
+        if endpoint == "/start":
+            return
+        success = "false" if endpoint == "/fail" else "true"
         try:
-            urllib.request.urlopen(f"{HC_URL}{endpoint}", timeout=10)
+            token = Path(GATUS_TOKEN_FILE).read_text().strip()
+            req = urllib.request.Request(
+                f"{GATUS_URL}?success={success}",
+                method="POST",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            urllib.request.urlopen(req, timeout=10)
         except Exception as e:
-            logging.warning(f"Failed to ping Healthchecks: {e}")
+            logging.warning(f"Failed to ping Gatus: {e}")
 
     # Configuration
     CONFIG = {

@@ -459,7 +459,7 @@
     # Starship (optionnel, alternative à Tide)
     # programs.starship.enable = true;
 
-    # SSH config pour GitHub
+    # SSH config pour GitHub + hôtes homelab
     programs.ssh = {
       enable = true;
       # Désactiver les valeurs par défaut dépréciées
@@ -472,6 +472,21 @@
           hostname = "github.com";
           user = "git";
           identityFile = "/run/agenix/ssh-key-github";
+        };
+        # Clé d'accès homelab (≠ host key agenix). Sauvegardée dans Bitwarden
+        # (0-Bootstrap · « SSH · homelab-master »). Évite les -i à la main.
+        "sentinel" = {
+          hostname = "172.16.16.220";
+          user = "root";
+          identityFile = "~/.ssh/homelab-master";
+        };
+        "proxmox pve" = {
+          hostname = "192.168.1.30";
+          user = "root";
+          identityFile = "~/.ssh/homelab-master";
+        };
+        "172.16.16.* 192.168.1.*" = {
+          identityFile = "~/.ssh/homelab-master";
         };
       };
     };

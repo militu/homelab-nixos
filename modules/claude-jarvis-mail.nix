@@ -112,12 +112,17 @@
         } >> "$LOG_FILE"
 
         # --- ÉTAPE 2 : TRAITEMENT (claude -p + skill jarvis + auto-mode) ---
-        # stdout+stderr capturés à la fois dans le journal (tee) et dans le log fichier.
+        # stdout+stderr capturés dans le journal, le log fichier ET un fichier de
+        # run (RUN_OUT) pour inspecter la sortie de CE run (détection 'Not logged in').
+        RUN_OUT="$(mktemp)"
+        # pipefail : sans lui, le code de retour du pipeline est celui de `tee`
+        # (toujours 0), ce qui masque un échec de `claude` → faux-vert Gatus.
+        set -o pipefail
         cat <<'PROMPT' | /home/amadeus/.local/bin/claude -p \
           --model sonnet \
           --permission-mode auto \
           --allowedTools "Skill,Bash,mcp__pushover__send_notification,mcp__pushover__send_notification_with_attachment,mcp__paperless__post_document,mcp__paperless__list_documents,mcp__paperless__get_document,mcp__paperless__get_document_content,mcp__paperless__list_tags,mcp__paperless__list_correspondents,mcp__paperless__list_document_types,mcp__paperless__create_tag,mcp__paperless__create_correspondent,mcp__paperless__create_document_type,mcp__initiative__create_task,mcp__initiative__create_subtask,mcp__initiative__create_comment,mcp__initiative__create_tag,mcp__initiative__set_task_tags,mcp__initiative__list_tasks,mcp__initiative__list_projects,mcp__initiative__list_initiatives,mcp__initiative__list_guilds,mcp__initiative__list_tags,mcp__initiative__list_task_statuses,mcp__initiative__get_task,mcp__initiative__get_project,mcp__qonto__list_clients,mcp__qonto__list_client_invoices,mcp__qonto__get_client_invoice,mcp__qonto__create_client_invoice,mcp__solidtime__create_time_entry,mcp__solidtime__create_project,mcp__solidtime__list_projects,mcp__solidtime__list_time_entries,mcp__solidtime__get_project" \
-          2>&1 | tee -a "$LOG_FILE"
+          2>&1 | tee -a "$LOG_FILE" "$RUN_OUT"
         /jarvis
 
         CONTEXTE : tu es déclenché automatiquement par un mail transféré à l'alias +jarvis.
@@ -155,8 +160,23 @@
         Reste concis. Une notif Pushover par mail traité.
         PROMPT
 
+        CLAUDE_RC=$?
+        set +o pipefail
+
         # --- CLEANUP : supprime le cookie frais (ne traîne pas entre deux runs) ---
         rm -f "$COOKIE_FILE"
+
+        # --- SANTÉ : claude -p renvoie 0 même sur 'Not logged in' (token OAuth
+        # expiré) → on détecte explicitement, en plus du code de retour du pipeline
+        # (rendu fiable par pipefail). Échec => heartbeat Gatus ROUGE + exit 1,
+        # sinon systemd voit un faux succès (status=0/SUCCESS) et rien n'alerte. ---
+        if [ "$CLAUDE_RC" -ne 0 ] || grep -qiE 'Not logged in|Please run /login' "$RUN_OUT"; then
+          echo "[jarvis-mail] ⛔ échec claude (rc=$CLAUDE_RC / auth ?) — heartbeat rouge" | tee -a "$LOG_FILE"
+          rm -f "$RUN_OUT"
+          gatus_ping false
+          exit 1
+        fi
+        rm -f "$RUN_OUT"
 
         # --- LOG : pied de run ---
         echo "[$(date +'%Y-%m-%d %H:%M:%S %z')] RUN END" >> "$LOG_FILE"

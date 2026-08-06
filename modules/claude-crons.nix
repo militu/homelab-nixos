@@ -8,6 +8,13 @@
     owner = "amadeus";
   };
 
+  # Token OAuth long-lived Claude Code (claude setup-token, ~1 an) : la session
+  # interactive de ~/.claude/.credentials.json expire (cas vécu le 2026-08-05).
+  age.secrets.claude-oauth-token = {
+    file = ../secrets/claude-oauth-token.age;
+    owner = "amadeus";
+  };
+
   systemd.timers."claude-weekly-tasks" = {
     description = "Daily Initiative tasks + Calendar reminder via Pushover";
     wantedBy = [ "timers.target" ];
@@ -37,6 +44,8 @@
         # pipefail : rend fiable le code de retour du pipeline `cat | claude | tee`
         # (sinon = code de `tee`, toujours 0). Un échec de claude → trap ERR → ping false.
         set -o pipefail
+        # Auth headless : token long-lived agenix, prioritaire sur .credentials.json.
+        export CLAUDE_CODE_OAUTH_TOKEN="$(cat ${config.age.secrets.claude-oauth-token.path})"
         # RUN_OUT capture la sortie de CE run : claude -p renvoie 0 même sur
         # 'Not logged in' (token OAuth expiré) → détection explicite plus bas.
         RUN_OUT="$(mktemp)"

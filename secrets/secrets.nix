@@ -22,6 +22,10 @@ in
   # Token bearer pour pousser les heartbeats des jobs Titan vers Gatus.
   "gatus-push-token.age".publicKeys = systems;
 
+  # Token OAuth long-lived Claude Code (claude setup-token, ~1 an) pour les jobs
+  # headless — la session interactive (~/.claude/.credentials.json) expire.
+  "claude-oauth-token.age".publicKeys = systems;
+
   # Mot de passe utilisateur (optionnel, on utilise hashedPassword pour l'instant)
   # "amadeus-password.age".publicKeys = systems;
 }

@@ -112,6 +112,8 @@
         } >> "$LOG_FILE"
 
         # --- ÉTAPE 2 : TRAITEMENT (claude -p + skill jarvis + auto-mode) ---
+        # Auth headless : token long-lived agenix, prioritaire sur .credentials.json.
+        export CLAUDE_CODE_OAUTH_TOKEN="$(cat ${config.age.secrets.claude-oauth-token.path})"
         # stdout+stderr capturés dans le journal, le log fichier ET un fichier de
         # run (RUN_OUT) pour inspecter la sortie de CE run (détection 'Not logged in').
         RUN_OUT="$(mktemp)"

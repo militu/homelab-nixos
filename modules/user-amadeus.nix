@@ -485,6 +485,19 @@
           user = "root";
           identityFile = "~/.ssh/homelab-master";
         };
+        # Home Assistant OS (add-on SSH). Clé dédiée `claude-homeassistant-access`.
+        # Doit précéder le glob 172.16.16.* pour ne pas hériter de homelab-master.
+        # Host keys volatiles (add-on recréé à chaque update) → checking désactivé.
+        "hassio" = {
+          hostname = "172.16.16.215";
+          user = "hassio";
+          identityFile = "~/.ssh/hassio_claude";
+          identitiesOnly = true;
+          extraOptions = {
+            StrictHostKeyChecking = "no";
+            UserKnownHostsFile = "/dev/null";
+          };
+        };
         "172.16.16.* 192.168.1.*" = {
           identityFile = "~/.ssh/homelab-master";
         };

@@ -464,42 +464,39 @@
       enable = true;
       # Désactiver les valeurs par défaut dépréciées
       enableDefaultConfig = false;
-      matchBlocks = {
+      settings = {
         "*" = {
-          addKeysToAgent = "yes";
+          AddKeysToAgent = "yes";
         };
         "github.com" = {
-          hostname = "github.com";
-          user = "git";
-          identityFile = "/run/agenix/ssh-key-github";
+          HostName = "github.com";
+          User = "git";
+          IdentityFile = "/run/agenix/ssh-key-github";
         };
         # Clé d'accès homelab (≠ host key agenix). Sauvegardée dans Bitwarden
         # (0-Bootstrap · « SSH · homelab-master »). Évite les -i à la main.
         "sentinel" = {
-          hostname = "172.16.16.220";
-          user = "root";
-          identityFile = "~/.ssh/homelab-master";
+          HostName = "172.16.16.220";
+          User = "root";
+          IdentityFile = "~/.ssh/homelab-master";
         };
         "proxmox pve" = {
-          hostname = "192.168.1.30";
-          user = "root";
-          identityFile = "~/.ssh/homelab-master";
+          HostName = "192.168.1.30";
+          User = "root";
+          IdentityFile = "~/.ssh/homelab-master";
         };
         # Home Assistant OS (add-on SSH). Clé dédiée `claude-homeassistant-access`.
-        # Doit précéder le glob 172.16.16.* pour ne pas hériter de homelab-master.
         # Host keys volatiles (add-on recréé à chaque update) → checking désactivé.
         "hassio" = {
-          hostname = "172.16.16.215";
-          user = "hassio";
-          identityFile = "~/.ssh/hassio_claude";
-          identitiesOnly = true;
-          extraOptions = {
-            StrictHostKeyChecking = "no";
-            UserKnownHostsFile = "/dev/null";
-          };
+          HostName = "172.16.16.215";
+          User = "hassio";
+          IdentityFile = "~/.ssh/hassio_claude";
+          IdentitiesOnly = true;
+          StrictHostKeyChecking = "no";
+          UserKnownHostsFile = "/dev/null";
         };
         "172.16.16.* 192.168.1.*" = {
-          identityFile = "~/.ssh/homelab-master";
+          IdentityFile = "~/.ssh/homelab-master";
         };
       };
     };

@@ -111,7 +111,7 @@
           echo "==================================================================="
         } >> "$LOG_FILE"
 
-        # --- ÉTAPE 2 : TRAITEMENT (claude -p + skill jarvis + auto-mode) ---
+        # --- ÉTAPE 2 : TRAITEMENT (claude -p + chapeau orga de Jarvis + auto-mode) ---
         # Auth headless : token long-lived agenix, prioritaire sur .credentials.json.
         export CLAUDE_CODE_OAUTH_TOKEN="$(cat ${config.age.secrets.claude-oauth-token.path})"
         # stdout+stderr capturés dans le journal, le log fichier ET un fichier de
@@ -125,7 +125,7 @@
           --permission-mode auto \
           --allowedTools "Skill,Bash,mcp__pushover__send_notification,mcp__pushover__send_notification_with_attachment,mcp__paperless__post_document,mcp__paperless__list_documents,mcp__paperless__get_document,mcp__paperless__get_document_content,mcp__paperless__list_tags,mcp__paperless__list_correspondents,mcp__paperless__list_document_types,mcp__paperless__create_tag,mcp__paperless__create_correspondent,mcp__paperless__create_document_type,mcp__initiative__create_task,mcp__initiative__create_subtask,mcp__initiative__create_comment,mcp__initiative__create_tag,mcp__initiative__set_task_tags,mcp__initiative__list_tasks,mcp__initiative__list_projects,mcp__initiative__list_initiatives,mcp__initiative__list_guilds,mcp__initiative__list_tags,mcp__initiative__list_task_statuses,mcp__initiative__get_task,mcp__initiative__get_project,mcp__qonto__list_clients,mcp__qonto__list_client_invoices,mcp__qonto__get_client_invoice,mcp__qonto__create_client_invoice,mcp__solidtime__create_time_entry,mcp__solidtime__create_project,mcp__solidtime__list_projects,mcp__solidtime__list_time_entries,mcp__solidtime__get_project" \
           2>&1 | tee -a "$LOG_FILE" "$RUN_OUT"
-        /jarvis
+        /orga
 
         CONTEXTE : tu es déclenché automatiquement par un mail transféré à l'alias +jarvis.
         Ce sont des instructions que je t'envoie en transférant un mail. Traite-les en mode autonome.
@@ -140,7 +140,7 @@
            (filtre toujours la 1ère ligne "Using keyring backend" qui pollue le JSON)
         2. Le CORPS du mail contient mes instructions (ex: "range dans Paperless", "crée une tâche",
            "prépare une facture Qonto pour X", "logue 3h sur projet Y"). Exécute l'action demandée
-           en t'appuyant sur ta connaissance de mon système (modules du skill jarvis).
+           en t'appuyant sur ta connaissance de mon système (modules du chapeau orga : email-triage, dispatch, projets, factures…).
            Les pièces jointes sont les documents concernés.
         3. Tu es en --permission-mode auto avec un set d'outils limité à la CRÉATION et la LECTURE.
            Tu ne peux PAS supprimer, ni modifier en masse, ni finaliser/envoyer une facture

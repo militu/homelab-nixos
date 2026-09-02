@@ -29,6 +29,9 @@
     path = [ pkgs.coreutils pkgs.bash pkgs.nodejs pkgs.jq pkgs.curl ];
     environment = {
       HOME = "/home/amadeus";
+      # Pas de hook de session sous systemd : sans MACHINE, un skill qui branche dessus
+      # tenterait `ssh titan` depuis Titan et échouerait (cas vécu le 2026-09-01).
+      MACHINE = "titan";
     };
     serviceConfig = {
       Type = "oneshot";

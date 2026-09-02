@@ -29,6 +29,9 @@
     path = [ pkgs.coreutils pkgs.bash pkgs.nodejs pkgs.jq pkgs.curl ];
     environment = {
       HOME = "/home/amadeus";
+      # Sans MACHINE, brief-soir prend la branche `ssh titan` et se fait refuser par
+      # lui-même : agenda perdu, brief « (indisponible) » (cas vécu le 2026-09-01).
+      MACHINE = "titan";
     };
     serviceConfig = {
       Type = "oneshot";

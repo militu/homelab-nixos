@@ -104,4 +104,30 @@
       TimeoutStartSec = "3min";
     };
   };
+
+  # Maintenance Jarvis : contrôle structurel quotidien, déterministe et sans modèle.
+  # La revue sémantique (curateur) reste hors automatisation tant qu'elle n'est pas arbitrée.
+  systemd.timers."jarvis-hub-check" = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnCalendar = "*-*-* 07:00:00"; Persistent = true; };
+  };
+  systemd.services."jarvis-hub-check" = {
+    description = "Contrôle documentaire déterministe du portefeuille HUB";
+    path = [ pkgs.python3 pkgs.coreutils pkgs.curl ];
+    environment.MACHINE = "titan";
+    serviceConfig = {
+      Type = "oneshot"; User = "amadeus"; TimeoutStartSec = "3min";
+      ExecStart = toString (pkgs.writeShellScript "jarvis-hub-check" ''
+        set -euo pipefail
+        ping() {
+          { printf 'header = "Authorization: Bearer '; cat ${config.age.secrets.gatus-push-token.path}; printf '"\n'; } |
+            curl --config - -sf -m 10 -X POST "https://gatus.lemasdelacolline.xyz/api/v1/endpoints/titan_jarvis-hub-check/external?success=$1" >/dev/null 2>&1 || true
+        }
+        trap 'ping false' ERR
+        python3 /home/amadeus/code/homelab-agents/scripts/hub_check.py --hub /mnt/mac_hub \
+          --format markdown --out /mnt/mac_hub/3_DOMAINES/IA/jarvis/04_Notes/controle_automatique.md
+        ping true
+      '');
+    };
+  };
 }

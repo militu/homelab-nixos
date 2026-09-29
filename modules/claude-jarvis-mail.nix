@@ -24,6 +24,10 @@
     };
   };
 
+  # Dossier du cookie Qonto, indépendant de toute session (ex-/run/user/1000, absent sans login).
+  # Monté en hostPath par le pod k3s mcp-qonto.
+  systemd.tmpfiles.rules = [ "d /run/jarvis-qonto 0700 amadeus users -" ];
+
   systemd.services."claude-jarvis-mail" = {
     description = "Process forwarded instruction mails via Jarvis skill";
     path = [ pkgs.coreutils pkgs.bash pkgs.nodejs pkgs.jq pkgs.curl ];
@@ -68,7 +72,7 @@
 
         # --- COOKIE QONTO : cherche un blob chiffré [JARVIS_QONTO:...] dans les mails ---
         # Si présent, déchiffre (clé AES via agenix) et écris le cookie frais pour le MCP.
-        COOKIE_FILE="/run/user/$(id -u)/qonto_cookie"
+        COOKIE_FILE="/run/jarvis-qonto/qonto_cookie"
         AES_KEY_FILE="/run/agenix/jarvis-qonto-key"
         rm -f "$COOKIE_FILE"
 

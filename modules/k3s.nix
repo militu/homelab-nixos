@@ -5,7 +5,7 @@
   services.k3s = {
     # Minor version pinned: patches (1.35.x) arrive with the weekly flake update, a minor bump
     # (1.36…) is an explicit decision taken through the `upgrade` skill, never a nightly surprise.
-    package = pkgs.k3s_1_35;
+    package = pkgs.k3s_1_36;
     enable = true;
     role = "server";
     extraFlags = toString [

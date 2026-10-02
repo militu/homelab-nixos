@@ -368,14 +368,6 @@
           echo "✓ Sync déclenché pour $argv[1]"
         end
 
-        # Mettre à jour ArgoCD (ne peut pas s'auto-updater)
-        function argocd-upgrade
-          echo "🔄 Mise à jour d'ArgoCD..."
-          kubectl apply -n argocd -f /home/amadeus/k3s/apps/argocd/install.yaml
-          echo "✓ ArgoCD mis à jour"
-          echo "  Version: "(kubectl -n argocd get deployment argocd-server -o jsonpath='{.spec.template.spec.containers[0].image}')
-        end
-
         # --- Aide ---
 
         function khelp
@@ -413,7 +405,6 @@
 
 🚀 ARGOCD
   argocd-sync <app>   Forcer sync d'une app
-  argocd-upgrade      Mettre à jour ArgoCD (manuel)
 
 💡 Raccourcis de base: k, kgp, kgs, kga
 "

@@ -69,6 +69,16 @@
         gl = "git log --oneline --graph --decorate";
         lg = "lazygit";
       };
+      # pbcopy over SSH: OSC 52 sequence, written to the Mac clipboard by Ghostty
+      # (clipboard-write = allow). Usage: cmd | pbcopy ; pbcopy < file
+      functions.pbcopy = ''
+        set -l data (base64 -w0)
+        if set -q TMUX
+          printf '\ePtmux;\e\e]52;c;%s\a\e\\' $data
+        else
+          printf '\e]52;c;%s\a' $data
+        end
+      '';
       interactiveShellInit = ''
         set -g fish_greeting
         set -gx KUBECONFIG /etc/rancher/k3s/k3s.yaml

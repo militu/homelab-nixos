@@ -71,12 +71,13 @@
       };
       # pbcopy over SSH: OSC 52 sequence, written to the Mac clipboard by Ghostty
       # (clipboard-write = allow). Usage: cmd | pbcopy ; pbcopy < file
+      # base64 writes straight into the sequence: a command substitution inside an
+      # interactive fish function does not receive the piped stdin.
       functions.pbcopy = ''
-        set -l data (base64 -w0)
         if set -q TMUX
-          printf '\ePtmux;\e\e]52;c;%s\a\e\\' $data
+          printf '\ePtmux;\e\e]52;c;'; base64 -w0; printf '\a\e\\'
         else
-          printf '\e]52;c;%s\a' $data
+          printf '\e]52;c;'; base64 -w0; printf '\a'
         end
       '';
       interactiveShellInit = ''

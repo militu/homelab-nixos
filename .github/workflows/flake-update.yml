@@ -1,5 +1,10 @@
 name: Flake Update
 
+# Weekly: update flake.lock, build Titan's system closure, then merge.
+# Titan applies main at its nightly autoUpgrade (04:00). A failed build
+# leaves the PR open and nothing reaches Titan; the `upgrade` skill reports it.
+# Release branches (nixos-AA.MM) are pinned in flake.nix: this never crosses a major.
+
 on:
   schedule:
     - cron: "0 3 * * 0" # Every Sunday at 3:00 UTC
@@ -15,19 +20,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Free disk space for the system closure
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
       - uses: DeterminateSystems/nix-installer-action@v22
 
       - name: Update flake.lock
         run: nix flake update
 
+      - name: Build Titan system
+        run: nix build .#nixosConfigurations.titan.config.system.build.toplevel --no-link --print-build-logs
+
       - name: Create Pull Request
+        id: cpr
         uses: peter-evans/create-pull-request@v7
         with:
           commit-message: "chore(deps): update flake.lock"
           title: "chore(deps): update flake.lock"
           body: |
-            Automated `nix flake update`.
+            Automated `nix flake update`, Titan system closure built successfully.
 
-            Merge when ready — Titan will pick it up at next nightly rebuild (~4h).
+            Merged automatically; Titan applies it at the next nightly autoUpgrade (04:00).
           branch: chore/flake-update
           delete-branch: true
+
+      - name: Merge
+        if: steps.cpr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge ${{ steps.cpr.outputs.pull-request-number }} --squash --delete-branch --repo ${{ github.repository }}

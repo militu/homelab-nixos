@@ -1,0 +1,15 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>militu/k3s-homelab//renovate/apps"],
+  "description": "Only GitHub Actions here: flake inputs are updated by the flake-update workflow.",
+  "enabledManagers": ["github-actions"],
+  "packageRules": [
+    {
+      "description": "No PR CI in this repo: action minors/patches automerge without waiting for checks; majors stay manual.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true,
+      "ignoreTests": true
+    }
+  ]
+}

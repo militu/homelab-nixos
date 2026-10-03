@@ -130,4 +130,33 @@
       '');
     };
   };
+
+  # Surveillance des jetons : rouge 21 j AVANT l'expiration (dates non secrètes dans
+  # secrets/expiries.json), plus une vraie sonde Claude (auth + modèle attendu).
+  # Filet de la tâche Initiative #110 ; remplace le rôle de canari du brief du soir.
+  systemd.timers."jarvis-token-watch" = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnCalendar = "*-*-* 08:00:00"; Persistent = true; };
+  };
+  systemd.services."jarvis-token-watch" = {
+    description = "Expiration des jetons des jobs Titan + sonde Claude";
+    path = [ pkgs.python3 pkgs.coreutils pkgs.curl pkgs.nodejs ];
+    environment.HOME = "/home/amadeus";
+    serviceConfig = {
+      Type = "oneshot"; User = "amadeus"; TimeoutStartSec = "5min";
+      ExecStart = toString (pkgs.writeShellScript "jarvis-token-watch" ''
+        set -euo pipefail
+        ping() {
+          { printf 'header = "Authorization: Bearer '; cat ${config.age.secrets.gatus-push-token.path}; printf '"\n'; } |
+            curl --config - -sf -m 10 -X POST "https://gatus.lemasdelacolline.xyz/api/v1/endpoints/titan_jarvis-token-watch/external?success=$1" >/dev/null 2>&1 || true
+        }
+        trap 'ping false' ERR
+        export CLAUDE_CODE_OAUTH_TOKEN="$(cat ${config.age.secrets.claude-oauth-token.path})"
+        python3 /home/amadeus/code/homelab-agents/scripts/token_watch.py \
+          --expiries ${../secrets/expiries.json} --warn-days 21 \
+          --claude /home/amadeus/.local/bin/claude --model sonnet --expect-model claude-sonnet-5-5
+        ping true
+      '');
+    };
+  };
 }

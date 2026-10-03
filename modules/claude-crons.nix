@@ -105,17 +105,24 @@
   # Synchro Initiative → TickTick : Initiative fait référence, TickTick est la vitrine à
   # rappels sur le téléphone (sans Tailscale). Déterministe, sans modèle. Règles :
   # homelab-agents/scripts/ticktick_sync.py. Remplace le brief Pushover de 20 h.
+  # Toutes les 5 min de 7 h à 22 h, puis une fois par heure : environ 190 passages par jour,
+  # 2 appels TickTick chacun sans changement ; un 429 abandonne le passage sans échec.
   age.secrets.initiative-sync-token = { file = ../secrets/initiative-sync-token.age; owner = "amadeus"; };
   age.secrets.ticktick-token = { file = ../secrets/ticktick-token.age; owner = "amadeus"; };
   systemd.timers."jarvis-ticktick-sync" = {
     wantedBy = [ "timers.target" ];
-    timerConfig = { OnBootSec = "2min"; OnUnitActiveSec = "15min"; Persistent = true; };
+    timerConfig = {
+      OnBootSec = "2min";
+      OnCalendar = [ "*-*-* 07..21:00/5:00" "*-*-* 22,23,00..06:00:00" ];
+      Persistent = true;
+    };
   };
   systemd.services."jarvis-ticktick-sync" = {
     description = "Synchro des tâches Initiative vers TickTick (et coches en retour)";
     path = [ pkgs.python3 pkgs.coreutils pkgs.curl ];
     serviceConfig = {
       Type = "oneshot"; User = "amadeus"; TimeoutStartSec = "3min";
+      StateDirectory = "jarvis-ticktick-sync";   # cache de l'identifiant de la liste
       ExecStart = toString (pkgs.writeShellScript "jarvis-ticktick-sync" ''
         set -euo pipefail
         ping() {
@@ -125,7 +132,8 @@
         trap 'ping false' ERR
         python3 /home/amadeus/code/homelab-agents/scripts/ticktick_sync.py \
           --initiative-token ${config.age.secrets.initiative-sync-token.path} \
-          --ticktick-token ${config.age.secrets.ticktick-token.path} --guild 2 --list Jarvis
+          --ticktick-token ${config.age.secrets.ticktick-token.path} --guild 2 --list Jarvis \
+          --state-dir "$STATE_DIRECTORY"
         ping true
       '');
     };

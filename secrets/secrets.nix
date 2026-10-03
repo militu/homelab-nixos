@@ -26,6 +26,11 @@ in
   # headless — la session interactive (~/.claude/.credentials.json) expire.
   "claude-oauth-token.age".publicKeys = systems;
 
+  # Synchro Initiative → TickTick (jarvis-ticktick-sync) : clé API Initiative dédiée
+  # (Réglages → Sécurité, espace Victor seul) et jeton OAuth TickTick (JSON, 180 j).
+  "initiative-sync-token.age".publicKeys = systems;
+  "ticktick-token.age".publicKeys = systems;
+
   # Mot de passe utilisateur (optionnel, on utilise hashedPassword pour l'instant)
   # "amadeus-password.age".publicKeys = systems;
 }

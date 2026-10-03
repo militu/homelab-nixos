@@ -15,64 +15,6 @@
     owner = "amadeus";
   };
 
-  systemd.timers."claude-weekly-tasks" = {
-    description = "Daily Initiative tasks + Calendar reminder via Pushover";
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnCalendar = "*-*-* 20:00:00";
-      Persistent = true;
-    };
-  };
-
-  systemd.services."claude-weekly-tasks" = {
-    description = "Send daily Initiative tasks + Calendar summary via Pushover";
-    path = [ pkgs.coreutils pkgs.bash pkgs.nodejs pkgs.jq pkgs.curl ];
-    environment = {
-      HOME = "/home/amadeus";
-      # Sans MACHINE, brief-soir prend la branche `ssh titan` et se fait refuser par
-      # lui-même : agenda perdu, brief « (indisponible) » (cas vécu le 2026-09-01).
-      MACHINE = "titan";
-    };
-    serviceConfig = {
-      Type = "oneshot";
-      User = "amadeus";
-      ExecStart = toString (pkgs.writeShellScript "claude-weekly-tasks" ''
-        export PATH="/home/amadeus/.nix-profile/bin:$PATH"
-        # Heartbeat Gatus (dead-man-switch). Endpoint: titan_claude-weekly-tasks
-        GATUS="https://gatus.lemasdelacolline.xyz/api/v1/endpoints/titan_claude-weekly-tasks/external"
-        TOKEN="$(cat ${config.age.secrets.gatus-push-token.path})"
-        ping() { curl -sf -m 10 -X POST -H "Authorization: Bearer $TOKEN" "$GATUS?success=$1" >/dev/null 2>&1 || true; }
-        trap 'ping false' ERR
-        set -e
-        # pipefail : rend fiable le code de retour du pipeline `cat | claude | tee`
-        # (sinon = code de `tee`, toujours 0). Un échec de claude → trap ERR → ping false.
-        set -o pipefail
-        # Auth headless : token long-lived agenix, prioritaire sur .credentials.json.
-        export CLAUDE_CODE_OAUTH_TOKEN="$(cat ${config.age.secrets.claude-oauth-token.path})"
-        # RUN_OUT capture la sortie de CE run : claude -p renvoie 0 même sur
-        # 'Not logged in' (token OAuth expiré) → détection explicite plus bas.
-        RUN_OUT="$(mktemp)"
-        cat <<'PROMPT' | /home/amadeus/.local/bin/claude -p \
-          --allowedTools "Skill,Read,Glob,mcp__initiative__list_tasks,mcp__initiative__list_projects,mcp__pushover__send_notification,Bash" 2>&1 | tee "$RUN_OUT"
-        /orga brief-soir
-
-        CONTEXTE : run planifié (timer Titan 20 h). Aujourd'hui : $(date +%Y-%m-%d). Applique le module
-        brief-soir tel quel : une seule notification Pushover, format markdown, corps ≤ 6 lignes ;
-        aucune écriture, aucune tâche créée. Si une source est indisponible, une ligne « (indisponible) ».
-        PROMPT
-        # claude -p renvoie 0 même non authentifié → heartbeat ROUGE + exit 1 sur
-        # détection, sinon Gatus resterait faux-vert (cas vécu le 2026-07-07).
-        if grep -qiE 'Not logged in|Please run /login' "$RUN_OUT"; then
-          echo "[weekly-tasks] ⛔ claude non authentifié — heartbeat rouge"
-          rm -f "$RUN_OUT"; ping false; exit 1
-        fi
-        rm -f "$RUN_OUT"
-        ping true
-      '');
-      TimeoutStartSec = "5min";
-    };
-  };
-
   # Carte Jarvis : index de boot (HUB/_carte.md) régénéré chaque heure — déterministe, sans LLM.
   systemd.timers."claude-carte" = {
     description = "Régénère HUB/_carte.md (index de boot de Jarvis)";
@@ -133,7 +75,7 @@
 
   # Surveillance des jetons : rouge 21 j AVANT l'expiration (dates non secrètes dans
   # secrets/expiries.json), plus une vraie sonde Claude (auth + modèle attendu).
-  # Filet de la tâche Initiative #110 ; remplace le rôle de canari du brief du soir.
+  # Filet de la tâche Initiative #110 (ex-rôle de canari du brief du soir, retiré le 03/10/2026).
   systemd.timers."jarvis-token-watch" = {
     wantedBy = [ "timers.target" ];
     timerConfig = { OnCalendar = "*-*-* 08:00:00"; Persistent = true; };
@@ -155,6 +97,35 @@
         python3 /home/amadeus/code/homelab-agents/scripts/token_watch.py \
           --expiries ${../secrets/expiries.json} --warn-days 21 \
           --claude /home/amadeus/.local/bin/claude --model sonnet --expect-model claude-sonnet-5-5
+        ping true
+      '');
+    };
+  };
+
+  # Synchro Initiative → TickTick : Initiative fait référence, TickTick est la vitrine à
+  # rappels sur le téléphone (sans Tailscale). Déterministe, sans modèle. Règles :
+  # homelab-agents/scripts/ticktick_sync.py. Remplace le brief Pushover de 20 h.
+  age.secrets.initiative-sync-token = { file = ../secrets/initiative-sync-token.age; owner = "amadeus"; };
+  age.secrets.ticktick-token = { file = ../secrets/ticktick-token.age; owner = "amadeus"; };
+  systemd.timers."jarvis-ticktick-sync" = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnBootSec = "2min"; OnUnitActiveSec = "15min"; Persistent = true; };
+  };
+  systemd.services."jarvis-ticktick-sync" = {
+    description = "Synchro des tâches Initiative vers TickTick (et coches en retour)";
+    path = [ pkgs.python3 pkgs.coreutils pkgs.curl ];
+    serviceConfig = {
+      Type = "oneshot"; User = "amadeus"; TimeoutStartSec = "3min";
+      ExecStart = toString (pkgs.writeShellScript "jarvis-ticktick-sync" ''
+        set -euo pipefail
+        ping() {
+          { printf 'header = "Authorization: Bearer '; cat ${config.age.secrets.gatus-push-token.path}; printf '"\n'; } |
+            curl --config - -sf -m 10 -X POST "https://gatus.lemasdelacolline.xyz/api/v1/endpoints/titan_jarvis-ticktick-sync/external?success=$1" >/dev/null 2>&1 || true
+        }
+        trap 'ping false' ERR
+        python3 /home/amadeus/code/homelab-agents/scripts/ticktick_sync.py \
+          --initiative-token ${config.age.secrets.initiative-sync-token.path} \
+          --ticktick-token ${config.age.secrets.ticktick-token.path} --guild 2 --list Jarvis
         ping true
       '');
     };

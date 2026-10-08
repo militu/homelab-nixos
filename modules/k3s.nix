@@ -11,7 +11,9 @@
     extraFlags = toString [
       "--disable=traefik"
       "--disable=servicelb"
-      "--write-kubeconfig-mode=644"
+      # Admin kubeconfig: root and the wheel group only (amadeus), never every local account.
+      "--write-kubeconfig-mode=640"
+      "--write-kubeconfig-group=wheel"
     ];
 
     # Arret propre du noeud : kubelet s enregistre comme inhibiteur systemd et termine
@@ -24,6 +26,11 @@
       shutdownGracePeriodCriticalPods = "20s";
     };
   };
+
+  # Non-interactive kubectl (Jarvis crons, ssh) reads ~/.kube/config: a link to the kubeconfig
+  # k3s rewrites at each start, so a renewed client certificate is followed (a stale copy
+  # would have expired on 14/12/2026).
+  systemd.tmpfiles.rules = [ "L+ /home/amadeus/.kube/config - - - - /etc/rancher/k3s/k3s.yaml" ];
 
   # Ports K3s
   networking.firewall.allowedTCPPorts = [ 6443 ];

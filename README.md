@@ -78,13 +78,13 @@ ip a       # Noter l'IP (DHCP)
 
 ```bash
 # Récupérer la clé master depuis Bitwarden → "NixOS Homelab Master Key"
-mkdir -p ~/.secrets/homelab
-# Coller le contenu de la clé privée dans ~/.secrets/homelab/host_key
-chmod 600 ~/.secrets/homelab/host_key
+mkdir -p -m 700 ~/.secrets
+# Coller le contenu de la clé privée dans ~/.secrets/nixos-host-key
+chmod 600 ~/.secrets/nixos-host-key
 
 # Préparer les extra-files pour nixos-anywhere
 mkdir -p /tmp/extra-files/etc/ssh
-cp ~/.secrets/homelab/host_key /tmp/extra-files/etc/ssh/ssh_host_ed25519_key
+cp ~/.secrets/nixos-host-key /tmp/extra-files/etc/ssh/ssh_host_ed25519_key
 chmod 600 /tmp/extra-files/etc/ssh/ssh_host_ed25519_key
 ```
 
@@ -154,7 +154,7 @@ password=<CIFS_PASSWORD>
 
 ```bash
 cd ~/code/homelab-nixos/secrets
-nix run github:ryantm/agenix -- -d ssh-key-github.age -i ~/.secrets/homelab/host_key
+nix run github:ryantm/agenix -- -d ssh-key-github.age -i ~/.secrets/nixos-host-key
 ```
 
 ### Modifier/Ajouter un secret
@@ -163,17 +163,17 @@ nix run github:ryantm/agenix -- -d ssh-key-github.age -i ~/.secrets/homelab/host
 cd ~/code/homelab-nixos/secrets
 
 # Éditer un secret existant
-nix run github:ryantm/agenix -- -e ssh-key-github.age -i ~/.secrets/homelab/host_key
+nix run github:ryantm/agenix -- -e ssh-key-github.age -i ~/.secrets/nixos-host-key
 
 # Ou créer depuis un fichier
-echo "contenu" | nix run github:ryantm/agenix -- -e nouveau-secret.age -i ~/.secrets/homelab/host_key
+echo "contenu" | nix run github:ryantm/agenix -- -e nouveau-secret.age -i ~/.secrets/nixos-host-key
 ```
 
 ### Re-chiffrer tous les secrets (si clé master change)
 
 ```bash
 cd ~/code/homelab-nixos/secrets
-nix run github:ryantm/agenix -- -r -i ~/.secrets/homelab/host_key
+nix run github:ryantm/agenix -- -r -i ~/.secrets/nixos-host-key
 ```
 
 ## Ce qui est automatisé au déploiement

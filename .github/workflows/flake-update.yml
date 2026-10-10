@@ -10,20 +10,29 @@ on:
     - cron: "0 3 * * 0" # Every Sunday at 3:00 UTC
   workflow_dispatch: # Manual trigger
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
+
+# A manual run and the weekly one must not push the same branch at once.
+concurrency:
+  group: flake-update
+  cancel-in-progress: false
 
 jobs:
   update:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write # push the update branch, merge it
+      pull-requests: write # open and merge the PR
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Free disk space for the system closure
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
 
-      - uses: DeterminateSystems/nix-installer-action@v22
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
 
       - name: Update flake.lock
         run: nix flake update
@@ -33,7 +42,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           commit-message: "chore(deps): update flake.lock"
           title: "chore(deps): update flake.lock"
@@ -48,4 +57,5 @@ jobs:
         if: steps.cpr.outputs.pull-request-number != ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr merge ${{ steps.cpr.outputs.pull-request-number }} --squash --delete-branch --repo ${{ github.repository }}
+          PR: ${{ steps.cpr.outputs.pull-request-number }}
+        run: gh pr merge "$PR" --squash --delete-branch --repo "$GITHUB_REPOSITORY"

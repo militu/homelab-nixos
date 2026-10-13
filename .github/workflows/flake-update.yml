@@ -87,6 +87,8 @@ jobs:
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ steps.app.outputs.token }}
+          # The trusted base is checked out by SHA (detached HEAD): name the target branch.
+          base: main
           commit-message: "chore(deps): update flake.lock"
           title: "chore(deps): update flake.lock"
           body: "Weekly lock update. Automerge waits for the required gate on an up-to-date branch."

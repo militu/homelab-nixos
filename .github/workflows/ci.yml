@@ -1,0 +1,73 @@
+name: CI
+
+# Nix gate: the same workflow and secret checks as militu/ci, plus the
+# existing pinned Nix installer and the repository-owned `make ci`.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# A newer push to the same pull request replaces its run; runs on main all finish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # renovate: datasource=github-releases depName=rhysd/actionlint
+  ACTIONLINT_VERSION: "1.7.12"
+  # renovate: datasource=github-releases depName=zizmorcore/zizmor
+  ZIZMOR_VERSION: "1.30.1"
+  # renovate: datasource=github-releases depName=gitleaks/gitleaks
+  GITLEAKS_VERSION: "8.30.1"
+  # renovate: datasource=github-releases depName=koalaman/shellcheck
+  SHELLCHECK_VERSION: "0.11.0"
+
+jobs:
+  gate:
+    name: Gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      # mise downloads tools through the GitHub API: unauthenticated, the shared
+      # runner IPs hit the rate limit and the gate fails.
+      MISE_GITHUB_TOKEN: ${{ github.token }}
+      CI_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+    steps:
+      - name: Check out the repository (full history, for the secret scan)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install the tools of mise.toml
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          version: 2026.10.7
+          cache: true
+
+      - name: Lint the workflows (actionlint, zizmor)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mise x "aqua:rhysd/actionlint@$ACTIONLINT_VERSION" "shellcheck@$SHELLCHECK_VERSION" -- actionlint
+          mise x "zizmor@$ZIZMOR_VERSION" -- zizmor --format github --min-severity medium .github/workflows
+
+      - name: Scan for secrets (gitleaks)
+        run: |
+          range=()
+          if [ -n "$CI_BASE" ] && [ "${CI_BASE#0000000}" = "$CI_BASE" ]; then range=(--log-opts="$CI_BASE..HEAD"); fi
+          mise x "gitleaks@$GITLEAKS_VERSION" -- gitleaks git --redact --no-banner "${range[@]}" .
+
+      - name: Free disk space for the system closure
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+
+      - name: make ci
+        run: make ci

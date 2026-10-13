@@ -1,0 +1,2 @@
+# Gate tools are pinned in the workflow. Nix comes from the pinned installer.
+[tools]

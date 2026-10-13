@@ -3,7 +3,7 @@
   "extends": [
     "github>militu/k3s-homelab//renovate/apps"
   ],
-  "description": "Only GitHub Actions here: flake inputs are updated by the flake-update workflow.",
+  "description": "Only GitHub Actions here: flake inputs are updated by the weekly flake-update workflow, because the Renovate nix manager only refreshes the whole lock (Sentinel keeps its kernel input pinned by hand) and would need Nix inside the Renovate CronJob.",
   "enabledManagers": [
     "github-actions"
   ]

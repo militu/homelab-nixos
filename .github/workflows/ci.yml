@@ -2,6 +2,8 @@ name: CI
 
 # Nix gate: the same workflow and secret checks as militu/ci, plus the
 # existing pinned Nix installer and the repository-owned `make ci`.
+# Aligned with militu/ci v2.0.0 (public repository: it cannot call the private
+# workflow). Compare with its gate.yml at each militu/ci release.
 on:
   pull_request:
   push:

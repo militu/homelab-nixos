@@ -37,6 +37,7 @@
       python3          # hooks Jarvis (~/.claude/hooks) + scripts/carte.py
       tmux
       uv
+      gnumake mise     # make ci des dépôts (contrat CI), outils lus dans mise.toml
       gwsPkg
     ];
 

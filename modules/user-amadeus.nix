@@ -503,7 +503,28 @@
           StrictHostKeyChecking = "no";
           UserKnownHostsFile = "/dev/null";
         };
-        "172.16.16.* 192.168.1.*" = {
+        # Mêmes noms courts que sur le Mac (~/.ssh/config).
+        "truenas" = {
+          HostName = "172.16.16.216";
+          User = "truenas_admin";
+          IdentityFile = "~/.ssh/homelab-master";
+        };
+        "pfsense" = {
+          HostName = "172.16.16.1";
+          User = "amadeus";
+          IdentityFile = "~/.ssh/homelab-master";
+        };
+        "unifi-os" = {
+          HostName = "192.168.1.115";
+          User = "amadeus";
+          IdentityFile = "~/.ssh/homelab-master";
+        };
+        "print-server" = {
+          HostName = "192.168.40.10";
+          User = "amadeus";
+          IdentityFile = "~/.ssh/homelab-master";
+        };
+        "172.16.16.* 192.168.1.* 192.168.40.*" = {
           IdentityFile = "~/.ssh/homelab-master";
         };
       };

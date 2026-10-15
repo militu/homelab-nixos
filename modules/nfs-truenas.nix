@@ -31,7 +31,7 @@ in
   };
 
   # HUB : copie serveur du Hub (synchronisée depuis le Mac via Syncthing).
-  # Monté en /mnt/mac_hub pour compat (chemin historique, renommage prévu en V5/V6).
+  # Monté en /mnt/mac_hub pour compat (chemin historique, référence du registre).
   # Remplace l'ancien montage CIFS //100.95.204.27/Hub (cf. cifs-mac.nix).
   fileSystems."/mnt/mac_hub" = {
     device = "${truenasIP}:/mnt/mainpool/hub";

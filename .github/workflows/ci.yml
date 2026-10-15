@@ -46,6 +46,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Gate everything when there is no base commit (new branch)
+        if: ${{ startsWith(env.CI_BASE, '0000000') }}
+        run: echo "CI_BASE=" >> "$GITHUB_ENV"
+
       - name: Install the tools of mise.toml
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:

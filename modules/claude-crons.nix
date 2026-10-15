@@ -83,7 +83,7 @@
   systemd.services."jarvis-token-watch" = {
     description = "Expiration des jetons des jobs Titan + sonde Claude";
     path = [ pkgs.python3 pkgs.coreutils pkgs.curl pkgs.nodejs ];
-    environment.HOME = "/home/amadeus";
+    environment = { HOME = "/home/amadeus"; MACHINE = "titan"; };  # contrat job NixOS J4
     serviceConfig = {
       Type = "oneshot"; User = "amadeus"; TimeoutStartSec = "5min";
       ExecStart = toString (pkgs.writeShellScript "jarvis-token-watch" ''

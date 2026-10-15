@@ -3,8 +3,8 @@
 
 {
   services.k3s = {
-    # Minor version pinned: patches (1.35.x) arrive with the weekly flake update, a minor bump
-    # (1.36…) is an explicit decision taken through the `upgrade` skill, never a nightly surprise.
+    # Minor version pinned: patches (1.36.x) arrive with the weekly flake update, a minor bump
+    # (1.37…) is an explicit decision taken through the `infra/upgrade` module, never a nightly surprise.
     package = pkgs.k3s_1_36;
     enable = true;
     role = "server";

@@ -35,9 +35,14 @@
   programs.nix-ld.enable = true;
 
   # SSH
+  # SSH par clé seulement (comme Sentinel) ; le mot de passe reste pour sudo et la console Proxmox.
   services.openssh = {
     enable = true;
-    settings.PermitRootLogin = "yes";
+    settings = {
+      PermitRootLogin = "prohibit-password";
+      PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
+    };
   };
 
   # QEMU Guest Agent (Proxmox)

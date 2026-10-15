@@ -1,4 +1,4 @@
-# Frigate storage: mergerfs + sync script + cron
+# Frigate storage: mergerfs + sync script + nightly systemd timer
 { config, lib, pkgs, ... }:
 
 let
@@ -138,7 +138,7 @@ let
             logging.error("Another sync process is running. Aborting.")
             return 1
 
-        # Signal start to Healthchecks
+        # Signal start to Gatus
         ping_healthcheck("/start")
 
         exit_code = 0
@@ -166,7 +166,7 @@ let
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
             lock_file.close()
 
-        # Signal success or failure to Healthchecks
+        # Signal success or failure to Gatus
         if exit_code == 0:
             ping_healthcheck()
         else:
@@ -227,11 +227,15 @@ in
     ];
   };
 
-  # Cron job - sync à 1h du matin
-  services.cron = {
-    enable = true;
-    systemCronJobs = [
-      "0 1 * * * root ${frigate-sync}/bin/frigate-sync > /var/log/frigate-sync.log 2>&1"
-    ];
+  # Synchro SSD → NAS chaque nuit à 01:00 : timer systemd (contrat job NixOS J1, H2), journal dans
+  # journald ; le script pousse lui-même le heartbeat Gatus titan_frigate-sync.
+  systemd.timers."frigate-sync" = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnCalendar = "*-*-* 01:00:00"; Persistent = true; };
+  };
+  systemd.services."frigate-sync" = {
+    description = "Synchro des enregistrements Frigate du SSD vers le NAS";
+    path = [ pkgs.rsync pkgs.findutils pkgs.coreutils ];
+    serviceConfig = { Type = "oneshot"; ExecStart = "${frigate-sync}/bin/frigate-sync"; };
   };
 }

@@ -13,12 +13,12 @@
   # User amadeus
   users.users.amadeus = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "docker" ];
+    extraGroups = [ "wheel" ];
     shell = pkgs.fish;
     hashedPassword = "$6$4lwIy7ta1iGgyx4I$jRmHGa7TBkG4DlHJRRp2fnkg5OlCVrPlokmm1nYWsMtnAcZS.mfBo1i6JqpWcK0.MhAkRaCdy9hlVuAnsDhBb1";
+    # Clé d'accès admin (Bitwarden 0-Bootstrap → SSH · homelab-master) : seule entrée SSH.
     openssh.authorizedKeys.keys = [
-      # Ta clé SSH publique (à ajouter)
-      # "ssh-ed25519 AAAA... amadeus@mac"
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPS7Ybl7SVPvuDqfbCi89nUC58HIlGop2wI7UyCJZ0a5 homelab-master"
     ];
   };
 

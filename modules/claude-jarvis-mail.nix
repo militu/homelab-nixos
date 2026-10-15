@@ -1,7 +1,7 @@
 # Jarvis mail-trigger: forward un mail vers +jarvis → Jarvis le traite
 # Gate gratuit (gws) : claude -p n'est lancé QUE s'il y a un mail à traiter.
 # Modèle: sonnet (économe). Logs: /home/amadeus/.local/share/jarvis-mail/log/
-# Outils: création + lecture uniquement (Paperless, Initiative, Vikunja, Qonto draft,
+# Outils: création + lecture uniquement (Paperless, Initiative, Qonto draft,
 #         Solidtime, Pushover). AUCUN delete / bulk_edit / batch_update (input email = non fiable).
 { config, lib, pkgs, ... }:
 

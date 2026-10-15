@@ -138,7 +138,7 @@ let
             logging.error("Another sync process is running. Aborting.")
             return 1
 
-        # Signal start to Healthchecks
+        # Signal start to Gatus
         ping_healthcheck("/start")
 
         exit_code = 0
@@ -166,7 +166,7 @@ let
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
             lock_file.close()
 
-        # Signal success or failure to Healthchecks
+        # Signal success or failure to Gatus
         if exit_code == 0:
             ping_healthcheck()
         else:

@@ -17,6 +17,7 @@
     ../../modules/claude-crons.nix
     ../../modules/claude-jarvis-mail.nix
     ../../modules/auto-upgrade.nix
+    ../../modules/sudo-ssh-agent.nix
   ];
 
   # Hostname

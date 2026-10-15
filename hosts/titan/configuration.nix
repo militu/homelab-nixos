@@ -35,8 +35,6 @@
     nameservers = [ "172.16.16.1" "1.1.1.1" ];
   };
 
-  # Root password (temporaire)
-  users.users.root.hashedPassword = "$6$4lwIy7ta1iGgyx4I$jRmHGa7TBkG4DlHJRRp2fnkg5OlCVrPlokmm1nYWsMtnAcZS.mfBo1i6JqpWcK0.MhAkRaCdy9hlVuAnsDhBb1";
 
   # Config spécifique production (plus de RAM, GPU, etc.)
   # À ajuster selon tes besoins

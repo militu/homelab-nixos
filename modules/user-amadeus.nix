@@ -10,12 +10,16 @@
     mode = "600";
   };
 
+  age.secrets.amadeus-password.file = ../secrets/amadeus-password.age;
+
   # User amadeus
   users.users.amadeus = {
     isNormalUser = true;
     extraGroups = [ "wheel" ];
     shell = pkgs.fish;
-    hashedPassword = "$6$4lwIy7ta1iGgyx4I$jRmHGa7TBkG4DlHJRRp2fnkg5OlCVrPlokmm1nYWsMtnAcZS.mfBo1i6JqpWcK0.MhAkRaCdy9hlVuAnsDhBb1";
+    # Hash du mot de passe sudo (Bitwarden : LOGIN · Titan · amadeus (sudo)), chiffré par agenix.
+    # mutableUsers reste actif : il ne sert qu'à la création du compte ; ensuite, `passwd`.
+    hashedPasswordFile = config.age.secrets.amadeus-password.path;
     # Clé d'accès admin (Bitwarden 0-Bootstrap → SSH · homelab-master) : seule entrée SSH.
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPS7Ybl7SVPvuDqfbCi89nUC58HIlGop2wI7UyCJZ0a5 homelab-master"

@@ -36,10 +36,13 @@
 
   # SSH
   # SSH par clé seulement (comme Sentinel) ; le mot de passe reste pour sudo et la console Proxmox.
+  # Root sans mot de passe ni SSH : l'administration passe par amadeus + sudo.
+  users.users.root.hashedPassword = "!";
+
   services.openssh = {
     enable = true;
     settings = {
-      PermitRootLogin = "prohibit-password";
+      PermitRootLogin = "no";
       PasswordAuthentication = false;
       KbdInteractiveAuthentication = false;
     };

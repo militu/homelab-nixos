@@ -31,6 +31,6 @@ in
   "initiative-sync-token.age".publicKeys = systems;
   "ticktick-token.age".publicKeys = systems;
 
-  # Mot de passe utilisateur (optionnel, on utilise hashedPassword pour l'instant)
-  # "amadeus-password.age".publicKeys = systems;
+  # Hash du mot de passe sudo d'amadeus (users.users.amadeus.hashedPasswordFile).
+  "amadeus-password.age".publicKeys = systems;
 }

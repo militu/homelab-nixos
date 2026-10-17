@@ -41,9 +41,22 @@
       python3          # hooks Jarvis (~/.claude/hooks) + scripts/carte.py
       tmux
       uv
-      gnumake mise     # make ci des dépôts (contrat CI), outils lus dans mise.toml
+      gnumake          # make ci des dépôts (contrat CI) ; mise : programs.mise ci-dessous
       gwsPkg
     ];
+
+    # mise : outils des dépôts lus dans mise.toml (contrat CI), mêmes binaires que le Mac et le runner.
+    # Sur NixOS, mise compile depuis les sources par défaut (Node 24.22 échouait au configure, 17/10/2026) ;
+    # nix-ld (common.nix) fait tourner les binaires précompilés, défaut prévu par mise en 2027.8.0.
+    # Pas d'intégration shell : make ci appelle mise explicitement.
+    programs.mise = {
+      enable = true;
+      enableFishIntegration = false;
+      enableBashIntegration = false;
+      enableZshIntegration = false;
+      enableNushellIntegration = false;
+      globalConfig.settings.all_compile = false;
+    };
 
     # Fish shell
     programs.fish = {
